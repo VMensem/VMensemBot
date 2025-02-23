@@ -1,7 +1,7 @@
 import json
 import os
 from typing import List, Dict, Any
-from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE
+from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE, INFO_FILE, SCRIPTS_FILE
 
 class DataManager:
     def __init__(self):
@@ -15,7 +15,10 @@ class DataManager:
         default_files = {
             RULES_FILE: {"rules": "Правила пока не установлены."},
             ADMINS_FILE: {"admins": []},
-            BANNED_WORDS_FILE: {"words": []}
+            BANNED_WORDS_FILE: {"words": []},
+            INFO_FILE: {"info": "Информация пока не установлена."},
+            SCRIPTS_FILE: {"scripts": []},
+            "data/rank.json": {"rank_message": "Информация о рангах пока не установлена."} # Added default for rank.json
         }
 
         for file_path, default_data in default_files.items():
@@ -96,3 +99,44 @@ class DataManager:
             words.remove(word.lower())
             return self._write_json(BANNED_WORDS_FILE, {"words": words})
         return False
+
+    def get_info(self) -> str:
+        """Get current info."""
+        data = self._read_json(INFO_FILE)
+        return data.get("info", "Информация пока не установлена.")
+
+    def set_info(self, info: str) -> bool:
+        """Set new info."""
+        info = info.replace("<", "&lt;").replace(">", "&gt;")
+        return self._write_json(INFO_FILE, {"info": info})
+
+    def get_scripts(self) -> List[str]:
+        """Get list of scripts."""
+        data = self._read_json(SCRIPTS_FILE)
+        return data.get("scripts", [])
+
+    def add_script(self, script: str) -> bool:
+        """Add new script."""
+        data = self._read_json(SCRIPTS_FILE)
+        scripts = data.get("scripts", [])
+        scripts.append(script)
+        return self._write_json(SCRIPTS_FILE, {"scripts": scripts})
+
+    def remove_script(self, index: int) -> bool:
+        """Remove script by index."""
+        data = self._read_json(SCRIPTS_FILE)
+        scripts = data.get("scripts", [])
+        if 0 <= index < len(scripts):
+            scripts.pop(index)
+            return self._write_json(SCRIPTS_FILE, {"scripts": scripts})
+        return False
+
+    def get_rank_message(self) -> str:
+        """Get rank message."""
+        data = self._read_json("data/rank.json")
+        return data.get("rank_message", "Информация о рангах пока не установлена.")
+
+    def set_rank_message(self, message: str) -> bool:
+        """Set rank message."""
+        message = message.replace("<", "&lt;").replace(">", "&gt;")
+        return self._write_json("data/rank.json", {"rank_message": message})

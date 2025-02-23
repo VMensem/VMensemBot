@@ -10,6 +10,8 @@ CREATOR_USERNAME: Final = "@admin"  # Default admin username
 RULES_FILE: Final = "data/rules.json"
 ADMINS_FILE: Final = "data/admins.json"
 BANNED_WORDS_FILE: Final = "data/banned_words.json"
+INFO_FILE: Final = "data/info.json"
+SCRIPTS_FILE: Final = "data/scripts.json"
 
 # Message templates
 WELCOME_MESSAGE: Final = """
@@ -24,13 +26,46 @@ HELP_MESSAGE: Final = """
 /start - Запустить бота
 /help - Показать это сообщение помощи
 /rules - Показать правила чата
+/rank - Показать информацию о рангах
+/info - Показать информацию
+/scripts - Показать список скриптов
 /id - Показать ваш Telegram ID
 
 <b>Команды Администратора:</b>
+/ap - Открыть админ-панель
 /setrules - Установить новые правила
+/setinfo - Установить информацию
+/addscript - Добавить скрипт
+/removescript - Удалить скрипт
 /addword - Добавить запрещенное слово
 /unword - Убрать запрещенное слово
 /stuff - Показать статистику бота
 /addadmin - Добавить нового администратора
 /unadmin - Удалить администратора
+"""
+
+RANK_MESSAGE: Final = """
+Как получить ранги?
+2 ранг — вступить в нашу группу ТГ
+3 ранг — 750к
+4 ранг — 1кк
+5 ранг — 1.5кк
+6 ранг — 2кк
+7 ранг — 3кк
+8 ранг — 4кк
+"""
+
+ADMIN_PANEL_MESSAGE: Final = """
+<b>Админ-панель</b>
+
+Доступные команды:
+/setrules - Изменить правила
+/setinfo - Изменить информацию
+/addscript - Добавить скрипт
+/removescript - Удалить скрипт
+/addword - Добавить запрещенное слово
+/unword - Убрать запрещенное слово
+/stuff - Статистика бота
+/addadmin - Добавить админа
+/unadmin - Удалить админа
 """

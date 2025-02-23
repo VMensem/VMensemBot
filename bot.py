@@ -4,8 +4,10 @@ from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 import asyncio
+from datetime import datetime
 from config import (
-    BOT_TOKEN, CREATOR_ID, WELCOME_MESSAGE, HELP_MESSAGE
+    BOT_TOKEN, CREATOR_ID, WELCOME_MESSAGE, HELP_MESSAGE,
+    RANK_MESSAGE, ADMIN_PANEL_MESSAGE
 )
 from data_manager import DataManager
 from keyboards import get_admin_keyboard, get_user_keyboard
@@ -13,31 +15,55 @@ from filters import IsAdmin, IsCreator
 
 # Configure logging
 logging.basicConfig(
-    level=logging.DEBUG,  # Changed to DEBUG for more detailed logs
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('bot.log')
+    ]
 )
 logger = logging.getLogger(__name__)
 
 # Initialize bot and dispatcher
-try:
-    if not BOT_TOKEN:
-        raise ValueError("BOT_TOKEN is not set!")
-    logger.info(f"Initializing bot with token starting with: {BOT_TOKEN[:5]}...")
+MAX_RECONNECT_ATTEMPTS = 5
+RECONNECT_TIMEOUT = 5
 
-    bot = Bot(
-        token=BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-    )
+async def create_bot_instance():
+    """Create bot instance with reconnection logic."""
+    attempt = 0
+    while attempt < MAX_RECONNECT_ATTEMPTS:
+        try:
+            if not BOT_TOKEN:
+                raise ValueError("BOT_TOKEN is not set!")
+
+            logger.info(f"Bot initialization attempt {attempt + 1}/{MAX_RECONNECT_ATTEMPTS}")
+            logger.info(f"Bot initialization at {datetime.now()}")
+
+            bot = Bot(
+                token=BOT_TOKEN,
+                default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+            )
+            await bot.get_me()  # Test connection
+            logger.info("Bot successfully connected to Telegram")
+            return bot
+
+        except Exception as e:
+            attempt += 1
+            logger.error(f"Failed to initialize bot (attempt {attempt}/{MAX_RECONNECT_ATTEMPTS}): {e}")
+            if attempt < MAX_RECONNECT_ATTEMPTS:
+                logger.info(f"Retrying in {RECONNECT_TIMEOUT} seconds...")
+                await asyncio.sleep(RECONNECT_TIMEOUT)
+            else:
+                raise
+
+try:
+    bot = None
     dp = Dispatcher()
     data_manager = DataManager()
-
-    logger.info("Bot and dispatcher initialized successfully")
+    logger.info("Dispatcher and DataManager initialized successfully")
 except Exception as e:
-    logger.error(f"Failed to initialize bot: {e}")
+    logger.error(f"Failed to initialize core components: {e}")
     raise
-
-# Register handlers BEFORE filters
-logger.info("Registering command handlers...")
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -78,8 +104,7 @@ async def cmd_rules(message: types.Message):
     rules = data_manager.get_rules()
     await message.reply(f"<b>Правила Чата:</b>\n\n{rules}")
 
-@dp.message(Command("setrules"))
-@dp.message(IsAdmin())
+@dp.message(Command("setrules"), IsAdmin())
 async def cmd_setrules(message: types.Message):
     """Handle /setrules command."""
     new_rules = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
@@ -97,8 +122,7 @@ async def cmd_id(message: types.Message):
     """Handle /id command."""
     await message.reply(f"Ваш Telegram ID: <code>{message.from_user.id}</code>")
 
-@dp.message(Command("addword"))
-@dp.message(IsAdmin())
+@dp.message(Command("addword"), IsAdmin())
 async def cmd_addword(message: types.Message):
     """Handle /addword command."""
     word = message.text.split(maxsplit=1)[1].lower() if len(message.text.split()) > 1 else ""
@@ -111,8 +135,7 @@ async def cmd_addword(message: types.Message):
     else:
         await message.reply("Слово уже в списке запрещенных или не удалось добавить.")
 
-@dp.message(Command("unword"))
-@dp.message(IsAdmin())
+@dp.message(Command("unword"), IsAdmin())
 async def cmd_unword(message: types.Message):
     """Handle /unword command."""
     word = message.text.split(maxsplit=1)[1].lower() if len(message.text.split()) > 1 else ""
@@ -125,8 +148,7 @@ async def cmd_unword(message: types.Message):
     else:
         await message.reply("Слово не найдено в списке или не удалось удалить.")
 
-@dp.message(Command("stuff"))
-@dp.message(IsAdmin())
+@dp.message(Command("stuff"), IsAdmin())
 async def cmd_stuff(message: types.Message):
     """Handle /stuff command."""
     admins = data_manager.get_admins()
@@ -142,8 +164,7 @@ async def cmd_stuff(message: types.Message):
     )
     await message.reply(stats)
 
-@dp.message(Command("addadmin"))
-@dp.message(IsCreator())
+@dp.message(Command("addadmin"), IsCreator())
 async def cmd_addadmin(message: types.Message):
     """Handle /addadmin command."""
     try:
@@ -157,8 +178,7 @@ async def cmd_addadmin(message: types.Message):
     except ValueError:
         await message.reply("Пожалуйста, укажите корректный ID пользователя.")
 
-@dp.message(Command("unadmin"))
-@dp.message(IsCreator())
+@dp.message(Command("unadmin"), IsCreator())
 async def cmd_unadmin(message: types.Message):
     """Handle /unadmin command."""
     try:
@@ -176,14 +196,108 @@ async def cmd_unadmin(message: types.Message):
     except ValueError:
         await message.reply("Пожалуйста, укажите корректный ID пользователя.")
 
+@dp.message(Command("rank"))
+async def cmd_rank(message: types.Message):
+    """Handle /rank command."""
+    logger.info(f"Rank command received from user {message.from_user.id}")
+    rank_message = data_manager.get_rank_message()
+    await message.reply(rank_message)
+
+@dp.message(Command("info"))
+async def cmd_info(message: types.Message):
+    """Handle /info command."""
+    logger.info(f"Info command received from user {message.from_user.id}")
+    info = data_manager.get_info()
+    await message.reply(info)
+
+@dp.message(Command("scripts"))
+async def cmd_scripts(message: types.Message):
+    """Handle /scripts command."""
+    logger.info(f"Scripts command received from user {message.from_user.id}")
+    scripts = data_manager.get_scripts()
+    if scripts:
+        scripts_text = "Список скриптов:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(scripts))
+        await message.reply(scripts_text)
+    else:
+        await message.reply("Скриптов пока нет.")
+
+@dp.message(Command("ap"), IsAdmin())
+async def cmd_admin_panel(message: types.Message):
+    """Handle /ap command."""
+    logger.info(f"Admin panel accessed by user {message.from_user.id}")
+    await message.reply(ADMIN_PANEL_MESSAGE)
+
+@dp.message(Command("setinfo"), IsAdmin())
+async def cmd_setinfo(message: types.Message):
+    """Handle /setinfo command."""
+    new_info = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
+    if not new_info:
+        await message.reply("Пожалуйста, укажите текст информации после команды.")
+        return
+
+    if data_manager.set_info(new_info):
+        await message.reply("Информация успешно обновлена!")
+    else:
+        await message.reply("Не удалось обновить информацию.")
+
+@dp.message(Command("addscript"), IsAdmin())
+async def cmd_addscript(message: types.Message):
+    """Handle /addscript command."""
+    script = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
+    if not script:
+        await message.reply("Пожалуйста, укажите текст скрипта после команды.")
+        return
+
+    if data_manager.add_script(script):
+        await message.reply("Скрипт успешно добавлен!")
+    else:
+        await message.reply("Не удалось добавить скрипт.")
+
+@dp.message(Command("removescript"), IsAdmin())
+async def cmd_removescript(message: types.Message):
+    """Handle /removescript command."""
+    scripts = data_manager.get_scripts()
+    if not scripts:
+        await message.reply("Скриптов нет для удаления.")
+        return
+
+    scripts_list = "Список скриптов:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(scripts))
+    await message.reply(f"{scripts_list}\n\nДля удаления, используйте команду /removescript <номер>")
+
+    # Check if number was provided
+    try:
+        index = int(message.text.split()[1]) - 1
+        if 0 <= index < len(scripts):
+            if data_manager.remove_script(index):
+                await message.reply("Скрипт успешно удален!")
+            else:
+                await message.reply("Не удалось удалить скрипт.")
+        else:
+            await message.reply("Неверный номер скрипта.")
+    except (IndexError, ValueError):
+        pass  # If no number provided, just show the list
+
+@dp.message(Command("setrank"), IsAdmin())
+async def cmd_setrank(message: types.Message):
+    """Handle /setrank command."""
+    new_rank = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
+    if not new_rank:
+        await message.reply("Пожалуйста, укажите текст информации о рангах после команды.")
+        return
+
+    if data_manager.set_rank_message(new_rank):
+        await message.reply("Информация о рангах успешно обновлена!")
+    else:
+        await message.reply("Не удалось обновить информацию о рангах.")
+
+
 @dp.message()
 async def handle_message(message: types.Message):
     """Handle all other messages - check for banned words."""
     # Log every incoming message for debugging
     logger.debug(
         f"Received message from user {message.from_user.id}. "
-        f"Text: {message.text if message.text else 'No text'}, "
-        f"Command: {message.get_command() if message.is_command() else 'Not a command'}"
+        f"Text: {message.text if message.text else 'No text'}"
     )
 
     banned_words = data_manager.get_banned_words()
@@ -216,37 +330,28 @@ async def handle_message(message: types.Message):
                 logger.error(f"Failed to handle banned message: {e}")
             break
 
-async def test_bot_connection():
-    """Test bot connection and configuration."""
-    try:
-        me = await bot.get_me()
-        logger.info(f"Bot connected successfully. Username: @{me.username}, ID: {me.id}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to connect to bot: {e}")
-        return False
-
-# Register filters AFTER handlers
-logger.info("Registering custom filters...")
-dp.message.filter(IsAdmin())
-dp.message.filter(IsCreator())
-
 async def main():
-    """Main function to start the bot."""
-    try:
-        logger.info("Starting bot...")
+    """Main function to start the bot with reconnection logic."""
+    while True:
+        try:
+            logger.info("Starting bot...")
+            global bot
 
-        # Test connection before starting
-        if not await test_bot_connection():
-            raise ValueError("Failed to establish connection with Telegram")
+            # Initialize bot with reconnection logic
+            bot = await create_bot_instance()
 
-        # Start polling with clean updates
-        await bot.delete_webhook(drop_pending_updates=True)
-        logger.info("Starting polling...")
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
-    except Exception as e:
-        logger.error(f"Error starting bot: {e}")
-        raise
+            # Start polling with clean updates
+            await bot.delete_webhook(drop_pending_updates=True)
+            logger.info("Starting polling...")
+            await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+
+        except Exception as e:
+            logger.error(f"Critical error in main loop: {e}")
+            logger.info("Restarting bot in 5 seconds...")
+            await asyncio.sleep(5)
+        finally:
+            if bot is not None:
+                await bot.session.close()
 
 if __name__ == '__main__':
     asyncio.run(main())

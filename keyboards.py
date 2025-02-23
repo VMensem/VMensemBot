@@ -5,18 +5,17 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
     keyboard = [
         [
             KeyboardButton(text="/rules"),
-            KeyboardButton(text="/setrules"),
+            KeyboardButton(text="/rank"),
+            KeyboardButton(text="/info")
+        ],
+        [
+            KeyboardButton(text="/scripts"),
+            KeyboardButton(text="/ap"),
             KeyboardButton(text="/stuff")
         ],
         [
-            KeyboardButton(text="/addword"),
-            KeyboardButton(text="/unword"),
+            KeyboardButton(text="/help"),
             KeyboardButton(text="/id")
-        ],
-        [
-            KeyboardButton(text="/addadmin"),
-            KeyboardButton(text="/unadmin"),
-            KeyboardButton(text="/help")
         ]
     ]
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
@@ -26,6 +25,11 @@ def get_user_keyboard() -> ReplyKeyboardMarkup:
     keyboard = [
         [
             KeyboardButton(text="/rules"),
+            KeyboardButton(text="/rank"),
+            KeyboardButton(text="/info")
+        ],
+        [
+            KeyboardButton(text="/scripts"),
             KeyboardButton(text="/help"),
             KeyboardButton(text="/id")
         ]
