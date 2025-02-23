@@ -3,7 +3,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton
+)
 import asyncio
 from datetime import datetime
 from config import (
@@ -13,6 +18,7 @@ from config import (
 from data_manager import DataManager
 from keyboards import get_admin_keyboard, get_user_keyboard
 from filters import IsAdmin, IsCreator
+from typing import List
 
 # Configure logging
 logging.basicConfig(
@@ -261,8 +267,10 @@ async def cmd_scripts(message: types.Message):
     logger.info(f"Scripts command received from user {message.from_user.id}")
     scripts = data_manager.get_scripts()
     if scripts:
-        scripts_text = "Список скриптов:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(scripts))
-        await message.reply(scripts_text)
+        await message.reply(
+            "📜 Выберите скрипт для просмотра:",
+            reply_markup=get_scripts_keyboard(scripts)
+        )
     else:
         await message.reply("Скриптов пока нет.")
 
@@ -562,6 +570,39 @@ async def main():
                 except:
                     pass
                 await bot.session.close()
+
+def get_scripts_keyboard(scripts: List[str]) -> InlineKeyboardMarkup:
+    """Create inline keyboard for scripts."""
+    keyboard = []
+    for i, script in enumerate(scripts, 1):
+        # Создаем короткое описание для кнопки (первые 20 символов)
+        button_text = f"Скрипт #{i}: {script[:20]}..."
+        keyboard.append([InlineKeyboardButton(
+            text=button_text,
+            callback_data=f"script_{i-1}"  # Используем индекс для идентификации скрипта
+        )])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+@dp.callback_query(lambda c: c.data.startswith('script_'))
+async def process_script_callback(callback_query: types.CallbackQuery):
+    """Handle script button clicks."""
+    try:
+        # Получаем индекс скрипта из callback_data
+        script_index = int(callback_query.data.split('_')[1])
+        scripts = data_manager.get_scripts()
+
+        if 0 <= script_index < len(scripts):
+            script = scripts[script_index]
+            script_message = f"<b>Скрипт #{script_index + 1}:</b>\n\n{script}"
+            await callback_query.message.answer(script_message)
+            await callback_query.answer("Скрипт отправлен!")
+        else:
+            await callback_query.answer("Скрипт не найден!")
+
+    except Exception as e:
+        logger.error(f"Error in script callback: {e}")
+        await callback_query.answer("Произошла ошибка при отправке скрипта")
+
 
 if __name__ == '__main__':
     asyncio.run(main())
