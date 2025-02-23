@@ -12,39 +12,58 @@ from keyboards import get_admin_keyboard, get_user_keyboard
 from filters import IsAdmin, IsCreator
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG,  # Changed to DEBUG for more detailed logs
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Initialize bot and dispatcher
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-dp = Dispatcher()
-data_manager = DataManager()
+try:
+    if not BOT_TOKEN:
+        raise ValueError("BOT_TOKEN is not set!")
+    logger.info(f"Initializing bot with token starting with: {BOT_TOKEN[:5]}...")
 
-# Register custom filters
-dp.message.filter(IsAdmin)
-dp.message.filter(IsCreator)
+    bot = Bot(
+        token=BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
+    dp = Dispatcher()
+    data_manager = DataManager()
+
+    # Register custom filters
+    dp.message.filter(IsAdmin)
+    dp.message.filter(IsCreator)
+
+    logger.info("Bot and dispatcher initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize bot: {e}")
+    raise
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     """Handle /start command."""
-    user_id = message.from_user.id
-    is_creator = user_id == CREATOR_ID
-    keyboard = get_admin_keyboard() if is_creator else get_user_keyboard()
-    logging.info(f"Start command received from user {user_id} (Creator: {is_creator})")
-    await message.reply(WELCOME_MESSAGE, reply_markup=keyboard)
+    try:
+        user_id = message.from_user.id
+        is_creator = user_id == CREATOR_ID
+        keyboard = get_admin_keyboard() if is_creator else get_user_keyboard()
+        logger.info(f"Processing /start command from user {user_id} (Creator: {is_creator})")
+        await message.reply(WELCOME_MESSAGE, reply_markup=keyboard)
+        logger.info(f"Successfully sent welcome message to user {user_id}")
+    except Exception as e:
+        logger.error(f"Error in start command: {e}")
+        await message.reply("Извините, произошла ошибка при обработке команды.")
 
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
     """Handle /help command."""
-    logging.info(f"Help command received from user {message.from_user.id}")
+    logger.info(f"Help command received from user {message.from_user.id}")
     await message.reply(HELP_MESSAGE)
 
 @dp.message(Command("rules"))
 async def cmd_rules(message: types.Message):
     """Handle /rules command."""
-    logging.info(f"Rules command received from user {message.from_user.id}")
+    logger.info(f"Rules command received from user {message.from_user.id}")
     rules = data_manager.get_rules()
     await message.reply(f"<b>Chat Rules:</b>\n\n{rules}")
 
@@ -167,7 +186,7 @@ async def handle_message(message: types.Message):
                 sent_msg = await message.answer(warning_msg)
 
                 # Log the moderation action
-                logging.info(
+                logger.info(
                     f"Deleted message from user {message.from_user.id} "
                     f"containing banned word. Chat ID: {message.chat.id}"
                 )
@@ -176,13 +195,35 @@ async def handle_message(message: types.Message):
                 await asyncio.sleep(30)
                 await sent_msg.delete()
             except Exception as e:
-                logging.error(f"Failed to handle banned message: {e}")
+                logger.error(f"Failed to handle banned message: {e}")
             break
+
+async def test_bot_connection():
+    """Test bot connection and configuration."""
+    try:
+        me = await bot.get_me()
+        logger.info(f"Bot connected successfully. Username: @{me.username}, ID: {me.id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to connect to bot: {e}")
+        return False
 
 async def main():
     """Main function to start the bot."""
-    logging.info("Starting bot...")
-    await dp.start_polling(bot)
+    try:
+        logger.info("Starting bot...")
+
+        # Test connection before starting
+        if not await test_bot_connection():
+            raise ValueError("Failed to establish connection with Telegram")
+
+        # Start polling with clean updates
+        await bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Starting polling...")
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    except Exception as e:
+        logger.error(f"Error starting bot: {e}")
+        raise
 
 if __name__ == '__main__':
     asyncio.run(main())
