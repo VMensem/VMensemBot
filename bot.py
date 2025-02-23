@@ -296,25 +296,50 @@ async def cmd_addscript(message: types.Message):
 @dp.message(Command("removescript"), IsAdmin())
 async def cmd_removescript(message: types.Message):
     """Handle /removescript command."""
-    scripts = data_manager.get_scripts()
-    if not scripts:
-        await message.reply("Скриптов нет для удаления.")
-        return
-
-    scripts_list = "Список скриптов:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(scripts))
-    await message.reply(f"{scripts_list}\n\nДля удаления, используйте команду /removescript <номер>")
-
     try:
-        index = int(message.text.split()[1]) - 1
-        if 0 <= index < len(scripts):
-            if data_manager.remove_script(index):
-                await message.reply("Скрипт успешно удален!")
-            else:
-                await message.reply("Не удалось удалить скрипт.")
+        logger.info(f"Removescript command received from user {message.from_user.id}")
+        scripts = data_manager.get_scripts()
+
+        if not scripts:
+            logger.info("No scripts available to remove")
+            await message.reply("Скриптов нет для удаления.")
+            return
+
+        parts = message.text.split()
+        logger.info(f"Command parts: {parts}")  # Debug log
+
+        if len(parts) > 1:
+            try:
+                index = int(parts[1]) - 1
+                logger.info(f"Attempting to remove script at index {index}")  # Debug log
+
+                if 0 <= index < len(scripts):
+                    removed_script = scripts[index]
+                    logger.info(f"Found script to remove: {removed_script[:50]}...")  # Debug log
+
+                    if data_manager.remove_script(index):
+                        logger.info(f"Successfully removed script {index + 1}")
+                        await message.reply(f"✅ Скрипт #{index + 1} успешно удален!")
+                    else:
+                        logger.error(f"Failed to remove script at index {index}")
+                        await message.reply("❌ Не удалось удалить скрипт.")
+                else:
+                    logger.warning(f"Invalid script index: {index}")
+                    await message.reply("❌ Неверный номер скрипта.")
+            except ValueError as e:
+                logger.error(f"Invalid number format: {e}")
+                await message.reply("❌ Пожалуйста, укажите корректный номер скрипта.")
         else:
-            await message.reply("Неверный номер скрипта.")
-    except (IndexError, ValueError):
-        pass
+            # If no number provided, show the list of scripts
+            scripts_list = "\n".join(f"{i+1}. {s[:50]}..." for i, s in enumerate(scripts))
+            logger.info("Showing scripts list")
+            await message.reply(
+                f"📜 Список скриптов:\n\n{scripts_list}\n\n"
+                "Для удаления используйте команду /removescript [номер]"
+            )
+    except Exception as e:
+        logger.error(f"Error in removescript command: {e}", exc_info=True)
+        await message.reply("❌ Произошла ошибка при удалении скрипта.")
 
 @dp.message(Command("setrank"), IsAdmin())
 async def cmd_setrank(message: types.Message):

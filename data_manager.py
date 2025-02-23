@@ -18,7 +18,7 @@ class DataManager:
             BANNED_WORDS_FILE: {"words": []},
             INFO_FILE: {"info": "Информация пока не установлена."},
             SCRIPTS_FILE: {"scripts": []},
-            "data/rank.json": {"rank_message": "Информация о рангах пока не установлена."} # Added default for rank.json
+            "data/rank.json": {"rank_message": "Информация о рангах пока не установлена."} 
         }
 
         for file_path, default_data in default_files.items():
@@ -124,12 +124,23 @@ class DataManager:
 
     def remove_script(self, index: int) -> bool:
         """Remove script by index."""
-        data = self._read_json(SCRIPTS_FILE)
-        scripts = data.get("scripts", [])
-        if 0 <= index < len(scripts):
-            scripts.pop(index)
-            return self._write_json(SCRIPTS_FILE, {"scripts": scripts})
-        return False
+        try:
+            data = self._read_json(SCRIPTS_FILE)
+            scripts = data.get("scripts", [])
+            print(f"Current scripts before removal: {scripts}")  # Debug log
+
+            if 0 <= index < len(scripts):
+                removed_script = scripts.pop(index)
+                print(f"Removing script at index {index}: {removed_script}")  # Debug log
+                success = self._write_json(SCRIPTS_FILE, {"scripts": scripts})
+                print(f"Write operation success: {success}")  # Debug log
+                return success
+            else:
+                print(f"Invalid index {index} for scripts list of length {len(scripts)}")  # Debug log
+                return False
+        except Exception as e:
+            print(f"Error in remove_script: {e}")  # Debug log
+            return False
 
     def get_rank_message(self) -> str:
         """Get rank message."""
