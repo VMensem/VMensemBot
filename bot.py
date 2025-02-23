@@ -339,25 +339,21 @@ async def cmd_words(message: types.Message):
 @dp.message(Command("shop"))
 async def cmd_shop(message: types.Message):
     """Handle /shop command - submit application."""
-    try:
-        # Check if the command is used in private chat
-        if message.chat.type != 'private':
-            await message.reply("⚠️ Эта команда работает только в личных сообщениях с ботом!")
-            return
+    # Check if the command is used in private chat
+    if message.chat.type != 'private':
+        await message.reply("⚠️ Эта команда работает только в личных сообщениях с ботом!")
+        return
 
-        # Send application format
-        await message.reply(SHOP_HELP_MESSAGE)
+    # Send application format
+    await message.reply(SHOP_HELP_MESSAGE)
 
-        # Notify creator that someone is submitting an application
-        await notify_creator(
-            f"📝 Новая заявка\n"
-            f"Пользователь: {message.from_user.mention} (ID: {message.from_user.id})\n"
-            f"Начал заполнение заявки."
-        )
-
-    except Exception as e:
-        logger.error(f"Error in shop command: {e}")
-        await message.reply("Произошла ошибка при обработке команды. Попробуйте позже.")
+    # Notify creator that someone is submitting an application
+    user_mention = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
+    await notify_creator(
+        f"📝 Новая заявка\n"
+        f"Пользователь: {user_mention}\n"
+        f"Начал заполнение заявки."
+    )
 
 def get_application_keyboard(user_id: int) -> InlineKeyboardMarkup:
     """Create inline keyboard for application."""
@@ -411,40 +407,68 @@ async def process_application_callback(callback_query: types.CallbackQuery):
 async def handle_shop_application(message: types.Message):
     """Handle shop application submissions."""
     try:
+        # Get the caption from photo or video message
+        if message.caption:
+            text = message.caption.strip()
+        else:
+            await message.reply("Пожалуйста, добавьте описание к вашему фото/видео в указанном формате.")
+            return False
+
+        # Check if this is a media message with correct format
+        if not (message.photo or message.video):
+            await message.reply("Пожалуйста, отправьте фото или видео вместе с заявкой.")
+            return False
+
         # Validate message format
-        text = message.text.strip()
         if not (text.startswith("Ник:") and "Ранг:" in text and "Доказательства:" in text):
+            await message.reply("Пожалуйста, следуйте формату заявки:\nНик:\nРанг:\nДоказательства:")
             return False
 
         # If MANAGEMENT_CHAT_ID is set, forward the application
         if MANAGEMENT_CHAT_ID:
+            # Create application text
+            user_mention = f"@{message.from_user.username}" if message.from_user.username else f"ID: {message.from_user.id}"
             application_text = (
                 f"📝 <b>Новая заявка</b>\n\n"
-                f"От: {message.from_user.mention} (ID: {message.from_user.id})\n\n"
+                f"От: {user_mention}\n\n"
                 f"{text}"
             )
-            # Send message with inline keyboard
+
+            # Send media with application text
+            if message.photo:
+                media_msg = await bot.send_photo(
+                    chat_id=MANAGEMENT_CHAT_ID,
+                    photo=message.photo[-1].file_id,
+                    caption=application_text,
+                    parse_mode=ParseMode.HTML
+                )
+            else:  # video
+                media_msg = await bot.send_video(
+                    chat_id=MANAGEMENT_CHAT_ID,
+                    video=message.video.file_id,
+                    caption=application_text,
+                    parse_mode=ParseMode.HTML
+                )
+
+            # Send status message with buttons
+            status_text = "📋 <b>Статус заявки</b>"
             await bot.send_message(
-                MANAGEMENT_CHAT_ID,
-                application_text,
+                chat_id=MANAGEMENT_CHAT_ID,
+                text=status_text,
+                reply_to_message_id=media_msg.message_id,
                 reply_markup=get_application_keyboard(message.from_user.id),
                 parse_mode=ParseMode.HTML
             )
+
             await message.reply("✅ Ваша заявка успешно отправлена!")
+            return True
 
-            # Notify creator about new application
-            await notify_creator(
-                f"📝 Новая заявка отправлена\n"
-                f"От: {message.from_user.mention} (ID: {message.from_user.id})"
-            )
-        else:
-            await message.reply("⚠️ Извините, в данный момент система заявок недоступна.")
-            logger.error("MANAGEMENT_CHAT_ID is not set")
+        await message.reply("⚠️ Извините, в данный момент система заявок недоступна.")
+        logger.error("MANAGEMENT_CHAT_ID is not set")
+        return False
 
-        return True
     except Exception as e:
         logger.error(f"Error handling shop application: {e}")
-        await message.reply("❌ Произошла ошибка при обработке заявки. Попробуйте позже.")
         return False
 
 @dp.message()
@@ -456,7 +480,7 @@ async def handle_message(message: types.Message):
     )
 
     # Check if this is a shop application in private chat
-    if message.chat.type == 'private' and message.text:
+    if message.chat.type == 'private' and (message.photo or message.video or message.text):
         if await handle_shop_application(message):
             return
 
@@ -472,7 +496,7 @@ async def handle_message(message: types.Message):
             try:
                 await message.delete()
                 warning_msg = (
-                    f"Сообщение от {message.from_user.mention} удалено "
+                    f"Сообщение от {message.from_user.get_mention(as_html=True)} удалено "
                     f"из-за использования запрещенного слова."
                 )
                 sent_msg = await message.answer(warning_msg)
@@ -480,7 +504,7 @@ async def handle_message(message: types.Message):
                 # Notify creator about moderation action
                 await notify_creator(
                     f"🚫 Модерация: Удалено сообщение\n"
-                    f"Пользователь: {message.from_user.mention} (ID: {message.from_user.id})\n"
+                    f"Пользователь: {message.from_user.get_mention(as_html=True)} (ID: {message.from_user.id})\n"
                     f"Чат: {message.chat.title} (ID: {message.chat.id})\n"
                     f"Причина: Запрещенное слово"
                 )
