@@ -7,7 +7,7 @@ import asyncio
 from datetime import datetime
 from config import (
     BOT_TOKEN, CREATOR_ID, WELCOME_MESSAGE, HELP_MESSAGE,
-    RANK_MESSAGE, ADMIN_PANEL_MESSAGE
+    RANK_MESSAGE, ADMIN_PANEL_MESSAGE, CREATOR_USERNAME
 )
 from data_manager import DataManager
 from keyboards import get_admin_keyboard, get_user_keyboard
@@ -148,21 +148,44 @@ async def cmd_unword(message: types.Message):
     else:
         await message.reply("Слово не найдено в списке или не удалось удалить.")
 
+@dp.message(Command("staff"))
+async def cmd_staff(message: types.Message):
+    """Handle /staff command."""
+    try:
+        admins = data_manager.get_admins()
+        admin_count = len(admins)
+
+        staff_info = (
+            "<b>Информация о Персонале:</b>\n\n"
+            f"Всего администраторов: {admin_count}\n"
+            f"Создатель бота: {CREATOR_USERNAME}\n\n"
+            "По всем вопросам обращайтесь к администраторам."
+        )
+
+        await message.reply(staff_info)
+    except Exception as e:
+        logger.error(f"Error in staff command: {e}")
+        await message.reply("Произошла ошибка при получении информации о персонале. Попробуйте позже.")
+
 @dp.message(Command("stuff"), IsAdmin())
 async def cmd_stuff(message: types.Message):
-    """Handle /stuff command."""
-    admins = data_manager.get_admins()
-    banned_words = data_manager.get_banned_words()
+    """Handle /stuff command for admins."""
+    try:
+        admins = data_manager.get_admins()
+        banned_words = data_manager.get_banned_words()
 
-    stats = (
-        "<b>Статистика Бота:</b>\n"
-        f"Количество администраторов: {len(admins)}\n"
-        f"Количество запрещенных слов: {len(banned_words)}\n"
-        f"\n<b>Список Администраторов:</b>\n"
-        + "\n".join(f"• <code>{admin_id}</code>" for admin_id in admins)
-        + f"\n\n<b>Текущие Правила:</b>\n{data_manager.get_rules()}"
-    )
-    await message.reply(stats)
+        stats = (
+            "<b>Статистика Бота:</b>\n"
+            f"Количество администраторов: {len(admins)}\n"
+            f"Количество запрещенных слов: {len(banned_words)}\n"
+            f"\n<b>Список Администраторов:</b>\n"
+            + "\n".join(f"• <code>{admin_id}</code>" for admin_id in admins)
+            + f"\n\n<b>Текущие Правила:</b>\n{data_manager.get_rules()}"
+        )
+        await message.reply(stats)
+    except Exception as e:
+        logger.error(f"Error in stuff command: {e}")
+        await message.reply("Произошла ошибка при получении статистики. Попробуйте позже.")
 
 @dp.message(Command("addadmin"), IsCreator())
 async def cmd_addadmin(message: types.Message):
@@ -206,9 +229,30 @@ async def cmd_rank(message: types.Message):
 @dp.message(Command("info"))
 async def cmd_info(message: types.Message):
     """Handle /info command."""
-    logger.info(f"Info command received from user {message.from_user.id}")
-    info = data_manager.get_info()
-    await message.reply(info)
+    try:
+        logger.info(f"Info command received from user {message.from_user.id}")
+        info = data_manager.get_info()
+        await message.reply(info)
+    except Exception as e:
+        logger.error(f"Error in info command: {e}")
+        await message.reply("Произошла ошибка при получении информации. Попробуйте позже.")
+
+@dp.message(Command("setinfo"), IsAdmin())
+async def cmd_setinfo(message: types.Message):
+    """Handle /setinfo command."""
+    try:
+        new_info = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
+        if not new_info:
+            await message.reply("Пожалуйста, укажите текст информации после команды /setinfo.")
+            return
+
+        if data_manager.set_info(new_info):
+            await message.reply("✅ Информация успешно обновлена!")
+        else:
+            await message.reply("❌ Не удалось обновить информацию. Попробуйте еще раз.")
+    except Exception as e:
+        logger.error(f"Error in setinfo command: {e}")
+        await message.reply("Произошла ошибка при обновлении информации. Попробуйте позже.")
 
 @dp.message(Command("scripts"))
 async def cmd_scripts(message: types.Message):
@@ -226,19 +270,6 @@ async def cmd_admin_panel(message: types.Message):
     """Handle /ap command."""
     logger.info(f"Admin panel accessed by user {message.from_user.id}")
     await message.reply(ADMIN_PANEL_MESSAGE)
-
-@dp.message(Command("setinfo"), IsAdmin())
-async def cmd_setinfo(message: types.Message):
-    """Handle /setinfo command."""
-    new_info = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
-    if not new_info:
-        await message.reply("Пожалуйста, укажите текст информации после команды.")
-        return
-
-    if data_manager.set_info(new_info):
-        await message.reply("Информация успешно обновлена!")
-    else:
-        await message.reply("Не удалось обновить информацию.")
 
 @dp.message(Command("addscript"), IsAdmin())
 async def cmd_addscript(message: types.Message):
@@ -264,7 +295,6 @@ async def cmd_removescript(message: types.Message):
     scripts_list = "Список скриптов:\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(scripts))
     await message.reply(f"{scripts_list}\n\nДля удаления, используйте команду /removescript <номер>")
 
-    # Check if number was provided
     try:
         index = int(message.text.split()[1]) - 1
         if 0 <= index < len(scripts):
@@ -275,7 +305,7 @@ async def cmd_removescript(message: types.Message):
         else:
             await message.reply("Неверный номер скрипта.")
     except (IndexError, ValueError):
-        pass  # If no number provided, just show the list
+        pass
 
 @dp.message(Command("setrank"), IsAdmin())
 async def cmd_setrank(message: types.Message):
@@ -294,7 +324,6 @@ async def cmd_setrank(message: types.Message):
 @dp.message()
 async def handle_message(message: types.Message):
     """Handle all other messages - check for banned words."""
-    # Log every incoming message for debugging
     logger.debug(
         f"Received message from user {message.from_user.id}. "
         f"Text: {message.text if message.text else 'No text'}"
@@ -303,7 +332,6 @@ async def handle_message(message: types.Message):
     banned_words = data_manager.get_banned_words()
     message_text = message.text.lower() if message.text else ""
 
-    # Skip empty messages or messages without text
     if not message_text:
         return
 
@@ -317,13 +345,11 @@ async def handle_message(message: types.Message):
                 )
                 sent_msg = await message.answer(warning_msg)
 
-                # Log the moderation action
                 logger.info(
                     f"Deleted message from user {message.from_user.id} "
                     f"containing banned word. Chat ID: {message.chat.id}"
                 )
 
-                # Delete warning message after 30 seconds
                 await asyncio.sleep(30)
                 await sent_msg.delete()
             except Exception as e:
