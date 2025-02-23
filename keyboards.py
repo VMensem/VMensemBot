@@ -2,30 +2,32 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 def get_admin_keyboard() -> ReplyKeyboardMarkup:
     """Create admin keyboard with common commands."""
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(
-        KeyboardButton("/rules"),
-        KeyboardButton("/setrules"),
-        KeyboardButton("/stuff")
-    )
-    keyboard.add(
-        KeyboardButton("/addword"),
-        KeyboardButton("/unword"),
-        KeyboardButton("/id")
-    )
-    keyboard.add(
-        KeyboardButton("/addadmin"),
-        KeyboardButton("/unadmin"),
-        KeyboardButton("/help")
-    )
-    return keyboard
+    keyboard = [
+        [
+            KeyboardButton(text="/rules"),
+            KeyboardButton(text="/setrules"),
+            KeyboardButton(text="/stuff")
+        ],
+        [
+            KeyboardButton(text="/addword"),
+            KeyboardButton(text="/unword"),
+            KeyboardButton(text="/id")
+        ],
+        [
+            KeyboardButton(text="/addadmin"),
+            KeyboardButton(text="/unadmin"),
+            KeyboardButton(text="/help")
+        ]
+    ]
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
 def get_user_keyboard() -> ReplyKeyboardMarkup:
     """Create user keyboard with basic commands."""
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(
-        KeyboardButton("/rules"),
-        KeyboardButton("/help"),
-        KeyboardButton("/id")
-    )
-    return keyboard
+    keyboard = [
+        [
+            KeyboardButton(text="/rules"),
+            KeyboardButton(text="/help"),
+            KeyboardButton(text="/id")
+        ]
+    ]
+    return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)

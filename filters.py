@@ -5,7 +5,7 @@ from data_manager import DataManager
 
 class IsAdmin(BaseFilter):
     """Filter for checking if user is admin."""
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.is_admin = True
 
     async def __call__(self, message: types.Message) -> bool:
@@ -15,7 +15,7 @@ class IsAdmin(BaseFilter):
 
 class IsCreator(BaseFilter):
     """Filter for checking if user is creator."""
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.is_creator = True
 
     async def __call__(self, message: types.Message) -> bool:

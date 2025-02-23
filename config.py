@@ -13,24 +13,24 @@ BANNED_WORDS_FILE: Final = "data/banned_words.json"
 
 # Message templates
 WELCOME_MESSAGE: Final = """
-Welcome to the Moderation Bot!
-Use /help to see available commands.
+Добро пожаловать в Модерационного Бота!
+Используйте /help чтобы увидеть доступные команды.
 """
 
 HELP_MESSAGE: Final = """
-<b>Available Commands:</b>
+<b>Доступные Команды:</b>
 
-<b>General Commands:</b>
-/start - Start the bot
-/help - Show this help message
-/rules - Show chat rules
-/id - Show your Telegram ID
+<b>Основные Команды:</b>
+/start - Запустить бота
+/help - Показать это сообщение помощи
+/rules - Показать правила чата
+/id - Показать ваш Telegram ID
 
-<b>Admin Commands:</b>
-/setrules - Set new rules
-/addword - Add banned word
-/unword - Remove banned word
-/stuff - Show bot statistics
-/addadmin - Add new admin
-/unadmin - Remove admin
+<b>Команды Администратора:</b>
+/setrules - Установить новые правила
+/addword - Добавить запрещенное слово
+/unword - Убрать запрещенное слово
+/stuff - Показать статистику бота
+/addadmin - Добавить нового администратора
+/unadmin - Удалить администратора
 """

@@ -6,18 +6,18 @@ from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE
 class DataManager:
     def __init__(self):
         self._ensure_data_files_exist()
-        
+
     def _ensure_data_files_exist(self):
         """Ensure all required data files exist with default values."""
         if not os.path.exists('data'):
             os.makedirs('data')
-            
+
         default_files = {
-            RULES_FILE: {"rules": "No rules set yet."},
+            RULES_FILE: {"rules": "Правила пока не установлены."},
             ADMINS_FILE: {"admins": []},
             BANNED_WORDS_FILE: {"words": []}
         }
-        
+
         for file_path, default_data in default_files.items():
             if not os.path.exists(file_path):
                 with open(file_path, 'w') as f:
@@ -45,7 +45,7 @@ class DataManager:
     def get_rules(self) -> str:
         """Get current rules."""
         data = self._read_json(RULES_FILE)
-        return data.get("rules", "No rules set yet.")
+        return data.get("rules", "Правила пока не установлены.")
 
     def set_rules(self, rules: str) -> bool:
         """Set new rules."""

@@ -31,14 +31,13 @@ try:
     dp = Dispatcher()
     data_manager = DataManager()
 
-    # Register custom filters
-    dp.message.filter(IsAdmin)
-    dp.message.filter(IsCreator)
-
     logger.info("Bot and dispatcher initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize bot: {e}")
     raise
+
+# Register handlers BEFORE filters
+logger.info("Registering command handlers...")
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -46,12 +45,24 @@ async def cmd_start(message: types.Message):
     try:
         user_id = message.from_user.id
         is_creator = user_id == CREATOR_ID
-        keyboard = get_admin_keyboard() if is_creator else get_user_keyboard()
-        logger.info(f"Processing /start command from user {user_id} (Creator: {is_creator})")
-        await message.reply(WELCOME_MESSAGE, reply_markup=keyboard)
-        logger.info(f"Successfully sent welcome message to user {user_id}")
+
+        # First try without keyboard
+        await message.reply(WELCOME_MESSAGE)
+        logger.info(f"Sent initial welcome message to user {user_id}")
+
+        # Now try to create and send keyboard
+        try:
+            keyboard = get_admin_keyboard() if is_creator else get_user_keyboard()
+            logger.debug(f"Created keyboard for user {user_id} (Creator: {is_creator})")
+            await message.reply("Вот доступные вам команды:", reply_markup=keyboard)
+            logger.info(f"Successfully sent keyboard to user {user_id}")
+        except Exception as keyboard_error:
+            logger.error(f"Keyboard creation error for user {user_id}: {keyboard_error}", exc_info=True)
+            # Continue without keyboard if it fails
+            pass
+
     except Exception as e:
-        logger.error(f"Error in start command: {e}")
+        logger.error(f"Critical error in start command for user {message.from_user.id}: {e}", exc_info=True)
         await message.reply("Извините, произошла ошибка при обработке команды.")
 
 @dp.message(Command("help"))
@@ -65,7 +76,7 @@ async def cmd_rules(message: types.Message):
     """Handle /rules command."""
     logger.info(f"Rules command received from user {message.from_user.id}")
     rules = data_manager.get_rules()
-    await message.reply(f"<b>Chat Rules:</b>\n\n{rules}")
+    await message.reply(f"<b>Правила Чата:</b>\n\n{rules}")
 
 @dp.message(Command("setrules"))
 @dp.message(IsAdmin())
@@ -73,18 +84,18 @@ async def cmd_setrules(message: types.Message):
     """Handle /setrules command."""
     new_rules = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
     if not new_rules:
-        await message.reply("Please provide rules text after the command.")
+        await message.reply("Пожалуйста, укажите текст правил после команды.")
         return
 
     if data_manager.set_rules(new_rules):
-        await message.reply("Rules updated successfully!")
+        await message.reply("Правила успешно обновлены!")
     else:
-        await message.reply("Failed to update rules.")
+        await message.reply("Не удалось обновить правила.")
 
 @dp.message(Command("id"))
 async def cmd_id(message: types.Message):
     """Handle /id command."""
-    await message.reply(f"Your Telegram ID: <code>{message.from_user.id}</code>")
+    await message.reply(f"Ваш Telegram ID: <code>{message.from_user.id}</code>")
 
 @dp.message(Command("addword"))
 @dp.message(IsAdmin())
@@ -92,13 +103,13 @@ async def cmd_addword(message: types.Message):
     """Handle /addword command."""
     word = message.text.split(maxsplit=1)[1].lower() if len(message.text.split()) > 1 else ""
     if not word:
-        await message.reply("Please provide a word to ban.")
+        await message.reply("Пожалуйста, укажите слово для запрета.")
         return
 
     if data_manager.add_banned_word(word):
-        await message.reply(f"Added '{word}' to banned words list.")
+        await message.reply(f"Слово '{word}' добавлено в список запрещенных.")
     else:
-        await message.reply("Word already in the banned list or failed to add.")
+        await message.reply("Слово уже в списке запрещенных или не удалось добавить.")
 
 @dp.message(Command("unword"))
 @dp.message(IsAdmin())
@@ -106,13 +117,13 @@ async def cmd_unword(message: types.Message):
     """Handle /unword command."""
     word = message.text.split(maxsplit=1)[1].lower() if len(message.text.split()) > 1 else ""
     if not word:
-        await message.reply("Please provide a word to unban.")
+        await message.reply("Пожалуйста, укажите слово для разблокировки.")
         return
 
     if data_manager.remove_banned_word(word):
-        await message.reply(f"Removed '{word}' from banned words list.")
+        await message.reply(f"Слово '{word}' удалено из списка запрещенных.")
     else:
-        await message.reply("Word not found in banned list or failed to remove.")
+        await message.reply("Слово не найдено в списке или не удалось удалить.")
 
 @dp.message(Command("stuff"))
 @dp.message(IsAdmin())
@@ -122,12 +133,12 @@ async def cmd_stuff(message: types.Message):
     banned_words = data_manager.get_banned_words()
 
     stats = (
-        "<b>Bot Statistics:</b>\n"
-        f"Number of admins: {len(admins)}\n"
-        f"Number of banned words: {len(banned_words)}\n"
-        f"\n<b>Admin List:</b>\n"
+        "<b>Статистика Бота:</b>\n"
+        f"Количество администраторов: {len(admins)}\n"
+        f"Количество запрещенных слов: {len(banned_words)}\n"
+        f"\n<b>Список Администраторов:</b>\n"
         + "\n".join(f"• <code>{admin_id}</code>" for admin_id in admins)
-        + f"\n\n<b>Active Rules:</b>\n{data_manager.get_rules()}"
+        + f"\n\n<b>Текущие Правила:</b>\n{data_manager.get_rules()}"
     )
     await message.reply(stats)
 
@@ -140,11 +151,11 @@ async def cmd_addadmin(message: types.Message):
         if not admin_id:
             raise ValueError
         if data_manager.add_admin(admin_id):
-            await message.reply(f"Added user ID {admin_id} as admin.")
+            await message.reply(f"Пользователь с ID {admin_id} добавлен как администратор.")
         else:
-            await message.reply("User is already an admin or failed to add.")
+            await message.reply("Пользователь уже администратор или не удалось добавить.")
     except ValueError:
-        await message.reply("Please provide a valid user ID.")
+        await message.reply("Пожалуйста, укажите корректный ID пользователя.")
 
 @dp.message(Command("unadmin"))
 @dp.message(IsCreator())
@@ -155,19 +166,26 @@ async def cmd_unadmin(message: types.Message):
         if not admin_id:
             raise ValueError
         if admin_id == CREATOR_ID:
-            await message.reply("Cannot remove the creator!")
+            await message.reply("Невозможно удалить создателя бота!")
             return
 
         if data_manager.remove_admin(admin_id):
-            await message.reply(f"Removed user ID {admin_id} from admins.")
+            await message.reply(f"Пользователь с ID {admin_id} удален из администраторов.")
         else:
-            await message.reply("User is not an admin or failed to remove.")
+            await message.reply("Пользователь не является администратором или не удалось удалить.")
     except ValueError:
-        await message.reply("Please provide a valid user ID.")
+        await message.reply("Пожалуйста, укажите корректный ID пользователя.")
 
 @dp.message()
 async def handle_message(message: types.Message):
     """Handle all other messages - check for banned words."""
+    # Log every incoming message for debugging
+    logger.debug(
+        f"Received message from user {message.from_user.id}. "
+        f"Text: {message.text if message.text else 'No text'}, "
+        f"Command: {message.get_command() if message.is_command() else 'Not a command'}"
+    )
+
     banned_words = data_manager.get_banned_words()
     message_text = message.text.lower() if message.text else ""
 
@@ -180,8 +198,8 @@ async def handle_message(message: types.Message):
             try:
                 await message.delete()
                 warning_msg = (
-                    f"Message from {message.from_user.mention} deleted "
-                    f"due to banned word usage."
+                    f"Сообщение от {message.from_user.mention} удалено "
+                    f"из-за использования запрещенного слова."
                 )
                 sent_msg = await message.answer(warning_msg)
 
@@ -207,6 +225,11 @@ async def test_bot_connection():
     except Exception as e:
         logger.error(f"Failed to connect to bot: {e}")
         return False
+
+# Register filters AFTER handlers
+logger.info("Registering custom filters...")
+dp.message.filter(IsAdmin())
+dp.message.filter(IsCreator())
 
 async def main():
     """Main function to start the bot."""
