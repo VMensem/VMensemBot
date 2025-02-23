@@ -3,11 +3,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 from datetime import datetime
 from config import (
     BOT_TOKEN, CREATOR_ID, WELCOME_MESSAGE, HELP_MESSAGE,
-    RANK_MESSAGE, ADMIN_PANEL_MESSAGE, CREATOR_USERNAME
+    RANK_MESSAGE, ADMIN_PANEL_MESSAGE, CREATOR_USERNAME, WORDS_MESSAGE, SHOP_HELP_MESSAGE, MANAGEMENT_CHAT_ID
 )
 from data_manager import DataManager
 from keyboards import get_admin_keyboard, get_user_keyboard
@@ -321,14 +322,145 @@ async def cmd_setrank(message: types.Message):
         await message.reply("Не удалось обновить информацию о рангах.")
 
 
+@dp.message(Command("words"), IsAdmin())
+async def cmd_words(message: types.Message):
+    """Handle /words command - show list of banned words."""
+    try:
+        banned_words = data_manager.get_banned_words()
+        if banned_words:
+            words_list = "\n".join(f"• {word}" for word in banned_words)
+            await message.reply(WORDS_MESSAGE.format(words_list))
+        else:
+            await message.reply("Список запрещенных слов пуст.")
+    except Exception as e:
+        logger.error(f"Error in words command: {e}")
+        await message.reply("Произошла ошибка при получении списка слов.")
+
+@dp.message(Command("shop"))
+async def cmd_shop(message: types.Message):
+    """Handle /shop command - submit application."""
+    try:
+        # Check if the command is used in private chat
+        if message.chat.type != 'private':
+            await message.reply("⚠️ Эта команда работает только в личных сообщениях с ботом!")
+            return
+
+        # Send application format
+        await message.reply(SHOP_HELP_MESSAGE)
+
+        # Notify creator that someone is submitting an application
+        await notify_creator(
+            f"📝 Новая заявка\n"
+            f"Пользователь: {message.from_user.mention} (ID: {message.from_user.id})\n"
+            f"Начал заполнение заявки."
+        )
+
+    except Exception as e:
+        logger.error(f"Error in shop command: {e}")
+        await message.reply("Произошла ошибка при обработке команды. Попробуйте позже.")
+
+def get_application_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    """Create inline keyboard for application."""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Выдано", callback_data=f"approve_{user_id}"),
+            InlineKeyboardButton(text="❌ Отказано", callback_data=f"reject_{user_id}")
+        ]
+    ])
+    return keyboard
+
+@dp.callback_query(lambda c: c.data.startswith(('approve_', 'reject_')))
+async def process_application_callback(callback_query: types.CallbackQuery):
+    """Handle application approval/rejection."""
+    try:
+        action, user_id = callback_query.data.split('_')
+        user_id = int(user_id)
+        is_approve = action == 'approve'
+
+        # Update message text to show decision
+        original_text = callback_query.message.text
+        decision = "✅ ВЫДАНО" if is_approve else "❌ ОТКАЗАНО"
+        updated_text = f"{original_text}\n\n{decision}"
+
+        # Edit message to show decision and remove buttons
+        await callback_query.message.edit_text(updated_text, parse_mode=ParseMode.HTML)
+
+        # Notify user about decision
+        try:
+            status = "одобрена" if is_approve else "отклонена"
+            await bot.send_message(
+                user_id,
+                f"Ваша заявка была {status}!"
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify user {user_id}: {e}")
+
+        # Notify creator about decision
+        await notify_creator(
+            f"📝 Заявка обработана\n"
+            f"Решение: {decision}\n"
+            f"Пользователь ID: {user_id}"
+        )
+
+        await callback_query.answer()
+
+    except Exception as e:
+        logger.error(f"Error processing application callback: {e}")
+        await callback_query.answer("Произошла ошибка при обработке заявки")
+
+async def handle_shop_application(message: types.Message):
+    """Handle shop application submissions."""
+    try:
+        # Validate message format
+        text = message.text.strip()
+        if not (text.startswith("Ник:") and "Ранг:" in text and "Доказательства:" in text):
+            return False
+
+        # If MANAGEMENT_CHAT_ID is set, forward the application
+        if MANAGEMENT_CHAT_ID:
+            application_text = (
+                f"📝 <b>Новая заявка</b>\n\n"
+                f"От: {message.from_user.mention} (ID: {message.from_user.id})\n\n"
+                f"{text}"
+            )
+            # Send message with inline keyboard
+            await bot.send_message(
+                MANAGEMENT_CHAT_ID,
+                application_text,
+                reply_markup=get_application_keyboard(message.from_user.id),
+                parse_mode=ParseMode.HTML
+            )
+            await message.reply("✅ Ваша заявка успешно отправлена!")
+
+            # Notify creator about new application
+            await notify_creator(
+                f"📝 Новая заявка отправлена\n"
+                f"От: {message.from_user.mention} (ID: {message.from_user.id})"
+            )
+        else:
+            await message.reply("⚠️ Извините, в данный момент система заявок недоступна.")
+            logger.error("MANAGEMENT_CHAT_ID is not set")
+
+        return True
+    except Exception as e:
+        logger.error(f"Error handling shop application: {e}")
+        await message.reply("❌ Произошла ошибка при обработке заявки. Попробуйте позже.")
+        return False
+
 @dp.message()
 async def handle_message(message: types.Message):
-    """Handle all other messages - check for banned words."""
+    """Handle all other messages - check for banned words and shop applications."""
     logger.debug(
         f"Received message from user {message.from_user.id}. "
         f"Text: {message.text if message.text else 'No text'}"
     )
 
+    # Check if this is a shop application in private chat
+    if message.chat.type == 'private' and message.text:
+        if await handle_shop_application(message):
+            return
+
+    # Continue with banned words check
     banned_words = data_manager.get_banned_words()
     message_text = message.text.lower() if message.text else ""
 
@@ -345,6 +477,14 @@ async def handle_message(message: types.Message):
                 )
                 sent_msg = await message.answer(warning_msg)
 
+                # Notify creator about moderation action
+                await notify_creator(
+                    f"🚫 Модерация: Удалено сообщение\n"
+                    f"Пользователь: {message.from_user.mention} (ID: {message.from_user.id})\n"
+                    f"Чат: {message.chat.title} (ID: {message.chat.id})\n"
+                    f"Причина: Запрещенное слово"
+                )
+
                 logger.info(
                     f"Deleted message from user {message.from_user.id} "
                     f"containing banned word. Chat ID: {message.chat.id}"
@@ -356,6 +496,15 @@ async def handle_message(message: types.Message):
                 logger.error(f"Failed to handle banned message: {e}")
             break
 
+async def notify_creator(message: str):
+    """Send notification to bot creator."""
+    try:
+        if bot:
+            await bot.send_message(CREATOR_ID, message)
+            logger.info(f"Notification sent to creator: {message}")
+    except Exception as e:
+        logger.error(f"Failed to send notification to creator: {e}")
+
 async def main():
     """Main function to start the bot with reconnection logic."""
     while True:
@@ -366,6 +515,9 @@ async def main():
             # Initialize bot with reconnection logic
             bot = await create_bot_instance()
 
+            # Notify creator about bot start
+            await notify_creator("✅ Бот успешно запущен и готов к работе!")
+
             # Start polling with clean updates
             await bot.delete_webhook(drop_pending_updates=True)
             logger.info("Starting polling...")
@@ -373,10 +525,18 @@ async def main():
 
         except Exception as e:
             logger.error(f"Critical error in main loop: {e}")
+            try:
+                await notify_creator(f"❌ Произошла критическая ошибка, бот остановлен.\nОшибка: {str(e)}")
+            except:
+                pass
             logger.info("Restarting bot in 5 seconds...")
             await asyncio.sleep(5)
         finally:
             if bot is not None:
+                try:
+                    await notify_creator("🔄 Бот останавливается...")
+                except:
+                    pass
                 await bot.session.close()
 
 if __name__ == '__main__':

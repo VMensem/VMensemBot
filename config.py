@@ -4,7 +4,8 @@ import os
 # Bot configuration
 BOT_TOKEN: Final = os.environ.get("BOT_TOKEN")  # Token will be loaded from environment variables
 CREATOR_ID: Final = 1951437901  # Creator's Telegram ID
-CREATOR_USERNAME: Final = "@admin"  # Default admin username
+CREATOR_USERNAME: Final = "@vladlotto"  # Creator's username
+MANAGEMENT_CHAT_ID: Final = -1002473077041  # Chat ID for management group (converted from 2473077041)
 
 # File paths
 RULES_FILE: Final = "data/rules.json"
@@ -28,8 +29,8 @@ HELP_MESSAGE: Final = """
 /rank - Показать информацию о рангах
 /info - Показать информацию
 /scripts - Показать список скриптов
-/id - Показать ваш Telegram ID
 /staff - Показать информацию о персонале
+/shop - Подать заявку (только в ЛС с ботом)
 """
 
 ADMIN_PANEL_MESSAGE: Final = """
@@ -43,6 +44,7 @@ ADMIN_PANEL_MESSAGE: Final = """
 /removescript - Удалить скрипт
 /addword - Добавить запрещенное слово
 /unword - Убрать запрещенное слово
+/words - Показать список запрещенных слов
 /stuff - Статистика бота
 /addadmin - Добавить админа
 /unadmin - Удалить админа
@@ -57,4 +59,17 @@ RANK_MESSAGE: Final = """
 6 ранг — 2кк
 7 ранг — 3кк
 8 ранг — 4кк
+"""
+
+WORDS_MESSAGE: Final = """
+<b>Список запрещенных слов:</b>
+{}
+"""
+
+SHOP_HELP_MESSAGE: Final = """
+Для подачи заявки используйте команду /shop в личных сообщениях с ботом.
+Формат заявки:
+Ник:
+Ранг:
+Доказательства:
 """
