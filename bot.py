@@ -297,7 +297,6 @@ async def handle_script_description(message: types.Message):
     user_id = message.from_user.id
     if user_id in script_description:
       script_description[user_id] = message.text
-      await message.reply("Теперь отправьте сам файл скрипта (любой тип файла).")
 
 
 @dp.message(IsAdmin(), F.document)
