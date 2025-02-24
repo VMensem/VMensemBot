@@ -262,19 +262,6 @@ async def cmd_setinfo(message: types.Message):
         logger.error(f"Error in setinfo command: {e}")
         await message.reply("Произошла ошибка при обновлении информации. Попробуйте позже.")
 
-@dp.message(Command("scripts"))
-async def cmd_scripts(message: types.Message):
-    """Handle /scripts command."""
-    logger.info(f"Scripts command received from user {message.from_user.id}")
-    scripts = data_manager.get_scripts()
-    if scripts:
-        await message.reply(
-            "📜 Выберите скрипт для просмотра:",
-            reply_markup=get_scripts_keyboard(scripts)
-        )
-    else:
-        await message.reply("Скриптов пока нет.")
-
 @dp.message(Command("ap"), IsAdmin())
 async def cmd_admin_panel(message: types.Message):
     """Handle /ap command."""
@@ -629,39 +616,6 @@ async def main():
                 except:
                     pass
                 await bot.session.close()
-
-def get_scripts_keyboard(scripts: List[str]) -> InlineKeyboardMarkup:
-    """Create inline keyboard for scripts."""
-    keyboard = []
-    for i, script in enumerate(scripts, 1):
-        # Создаем короткое описание для кнопки (первые 20 символов)
-        button_text = f"Скрипт #{i}: {script[:20]}..."
-        keyboard.append([InlineKeyboardButton(
-            text=button_text,
-            callback_data=f"script_{i-1}"  # Используем индекс для идентификации скрипта
-        )])
-    return InlineKeyboardMarkup(inline_keyboard=keyboard)
-
-@dp.callback_query(lambda c: c.data.startswith('script_'))
-async def process_script_callback(callback_query: types.CallbackQuery):
-    """Handle script button clicks."""
-    try:
-        # Получаем индекс скрипта из callback_data
-        script_index = int(callback_query.data.split('_')[1])
-        scripts = data_manager.get_scripts()
-
-        if 0 <= script_index < len(scripts):
-            script = scripts[script_index]
-            script_message = f"<b>Скрипт #{script_index + 1}:</b>\n\n{script}"
-            await callback_query.message.answer(script_message)
-            await callback_query.answer("Скрипт отправлен!")
-        else:
-            await callback_query.answer("Скрипт не найден!")
-
-    except Exception as e:
-        logger.error(f"Error in script callback: {e}")
-        await callback_query.answer("Произошла ошибка при отправке скрипта")
-
 
 if __name__ == '__main__':
     asyncio.run(main())
