@@ -1,4 +1,5 @@
 import logging
+import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
@@ -280,18 +281,42 @@ async def cmd_admin_panel(message: types.Message):
     logger.info(f"Admin panel accessed by user {message.from_user.id}")
     await message.reply(ADMIN_PANEL_MESSAGE)
 
+#Added State Machine for /addscript
+script_description = {}
+
 @dp.message(Command("addscript"), IsAdmin())
 async def cmd_addscript(message: types.Message):
-    """Handle /addscript command."""
-    script = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else ""
-    if not script:
-        await message.reply("Пожалуйста, укажите текст скрипта после команды.")
-        return
+    """Handle /addscript command - first part: get description."""
+    user_id = message.from_user.id
+    script_description[user_id] = ""  # Initialize description
+    await message.reply("Пожалуйста, введите описание скрипта:")
 
-    if data_manager.add_script(script):
-        await message.reply("Скрипт успешно добавлен!")
+@dp.message(IsAdmin())
+async def handle_script_description(message: types.Message):
+    """Handle description input for /addscript."""
+    user_id = message.from_user.id
+    if user_id in script_description:
+      script_description[user_id] = message.text
+      await message.reply("Теперь отправьте сам файл скрипта (любой тип файла).")
+
+
+@dp.message(content_types=['document'], IsAdmin())
+async def handle_script_file(message: types.Message):
+    """Handle file upload for /addscript."""
+    user_id = message.from_user.id
+    if user_id in script_description and script_description[user_id]:
+        file_id = message.document.file_id
+        file_name = message.document.file_name
+        description = script_description[user_id]
+        if data_manager.add_script(description, file_id, file_name):
+            await message.reply("Скрипт успешно добавлен!")
+            del script_description[user_id]  # Reset state
+        else:
+            await message.reply("Не удалось добавить скрипт.")
+            del script_description[user_id]  # Reset state
     else:
-        await message.reply("Не удалось добавить скрипт.")
+        await message.reply("Пожалуйста, сначала введите описание скрипта с помощью команды /addscript.")
+
 
 @dp.message(Command("removescript"), IsAdmin())
 async def cmd_removescript(message: types.Message):
