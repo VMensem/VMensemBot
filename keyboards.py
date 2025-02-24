@@ -9,7 +9,6 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton(text="/info")
         ],
         [
-            KeyboardButton(text="/scripts"),
             KeyboardButton(text="/ap"),
             KeyboardButton(text="/stuff")
         ],
@@ -29,7 +28,6 @@ def get_user_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton(text="/info")
         ],
         [
-            KeyboardButton(text="/scripts"),
             KeyboardButton(text="/help"),
             KeyboardButton(text="/id")
         ]
