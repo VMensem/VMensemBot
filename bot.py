@@ -305,14 +305,24 @@ async def handle_script_file(message: types.Message):
     """Handle file upload for /addscript."""
     user_id = message.from_user.id
     if user_id in script_description and script_description[user_id]:
-        file_id = message.document.file_id
-        file_name = message.document.file_name
-        description = script_description[user_id]
-        if data_manager.add_script(description, file_id, file_name):
-            await message.reply("Скрипт успешно добавлен!")
-            del script_description[user_id]  # Reset state
-        else:
-            await message.reply("Не удалось добавить скрипт.")
+        try:
+            file_id = message.document.file_id
+            file = await bot.get_file(file_id)
+            file_path = file.file_path
+            file_name = message.document.file_name
+            
+            # Скачиваем файл
+            file_content = await bot.download_file(file_path)
+            
+            description = script_description[user_id]
+            if data_manager.add_script(description, file_content.read(), file_name):
+                await message.reply("✅ Скрипт успешно добавлен!")
+            else:
+                await message.reply("❌ Не удалось добавить скрипт.")
+        except Exception as e:
+            logger.error(f"Error handling script file: {e}")
+            await message.reply("❌ Произошла ошибка при обработке файла.")
+        finally:
             del script_description[user_id]  # Reset state
     else:
         await message.reply("Пожалуйста, сначала введите описание скрипта с помощью команды /addscript.")

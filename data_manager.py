@@ -115,12 +115,29 @@ class DataManager:
         data = self._read_json(SCRIPTS_FILE)
         return data.get("scripts", [])
 
-    def add_script(self, script: str) -> bool:
-        """Add new script."""
-        data = self._read_json(SCRIPTS_FILE)
-        scripts = data.get("scripts", [])
-        scripts.append(script)
-        return self._write_json(SCRIPTS_FILE, {"scripts": scripts})
+    def add_script(self, description: str, file_data: bytes, filename: str) -> bool:
+        """Add new script with file."""
+        try:
+            if not os.path.exists('scripts'):
+                os.makedirs('scripts')
+            
+            # Сохраняем файл
+            file_path = os.path.join('scripts', filename)
+            with open(file_path, 'wb') as f:
+                f.write(file_data)
+            
+            # Сохраняем информацию о скрипте
+            data = self._read_json(SCRIPTS_FILE)
+            scripts = data.get("scripts", [])
+            scripts.append({
+                "description": description,
+                "filename": filename,
+                "path": file_path
+            })
+            return self._write_json(SCRIPTS_FILE, {"scripts": scripts})
+        except Exception as e:
+            print(f"Error in add_script: {e}")
+            return False
 
     def remove_script(self, index: int) -> bool:
         """Remove script by index."""
