@@ -1,5 +1,5 @@
 modules = ["python-3.11"]
-run = "None"
+run = "Python bot.py"
 
 [nix]
 channel = "stable-24_05"
@@ -31,4 +31,4 @@ task = "shell.exec"
 args = "python bot.py"
 
 [deployment]
-run = ["sh", "-c", "None"]
+run = ["sh", "-c", "Python bot.py"]
