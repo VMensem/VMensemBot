@@ -5,7 +5,7 @@ run = "Python bot.py"
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Project"
+runButton = "Telegram Bot"
 
 [[workflows.workflow]]
 name = "Project"
