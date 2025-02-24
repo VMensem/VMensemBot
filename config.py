@@ -12,6 +12,7 @@ RULES_FILE: Final = "data/rules.json"
 ADMINS_FILE: Final = "data/admins.json"
 BANNED_WORDS_FILE: Final = "data/banned_words.json"
 INFO_FILE: Final = "data/info.json"
+SCRIPTS_FILE: Final = "data/scripts.json"
 
 # Message templates
 WELCOME_MESSAGE: Final = """
@@ -27,6 +28,7 @@ HELP_MESSAGE: Final = """
 /rules - Показать правила чата
 /rank - Показать информацию о рангах
 /info - Показать информацию
+/scripts - Показать список скриптов
 /staff - Показать информацию о персонале
 /shop - Подать заявку (только в ЛС с ботом)
 """
