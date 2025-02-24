@@ -300,7 +300,7 @@ async def handle_script_description(message: types.Message):
       await message.reply("Теперь отправьте сам файл скрипта (любой тип файла).")
 
 
-@dp.message(content_types=['document'], IsAdmin())
+@dp.message(IsAdmin(), content_types=['document'])
 async def handle_script_file(message: types.Message):
     """Handle file upload for /addscript."""
     user_id = message.from_user.id
