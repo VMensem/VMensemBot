@@ -1,6 +1,6 @@
 import logging
 import os
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
@@ -300,7 +300,7 @@ async def handle_script_description(message: types.Message):
       await message.reply("Теперь отправьте сам файл скрипта (любой тип файла).")
 
 
-@dp.message(IsAdmin(), content_types=['document'])
+@dp.message(IsAdmin(), F.document)
 async def handle_script_file(message: types.Message):
     """Handle file upload for /addscript."""
     user_id = message.from_user.id
