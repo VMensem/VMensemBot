@@ -18,6 +18,7 @@ SCRIPTS_FILE: Final = "data/scripts.json"
 WELCOME_MESSAGE: Final = """
 Добро пожаловать в Модерационного Бота!
 Используйте /help чтобы увидеть доступные команды.
+Чат Mensem Family - https://t.me/+KhI_NQYp-eRjNDUy
 """
 
 HELP_MESSAGE: Final = """
