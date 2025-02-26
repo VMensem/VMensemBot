@@ -16,7 +16,7 @@ SCRIPTS_FILE: Final = "data/scripts.json"
 
 # Message templates
 WELCOME_MESSAGE: Final = """
-Добро пожаловать в Модерационного Бота!
+Добро пожаловать в MensemBot!
 Используйте /help чтобы увидеть доступные команды.
 Чат Mensem Family - https://t.me/+KhI_NQYp-eRjNDUy
 """
