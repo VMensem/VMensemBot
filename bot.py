@@ -431,6 +431,11 @@ async def handle_shop_application(message: types.Message):
         logger.error(f"Error handling shop application: {e}")
         return False
 
+@dp.message(Command("scripts"))
+async def cmd_scripts(message: types.Message):
+    """Handle /scripts command."""
+    await message.reply("Скрипты были удалены из функционала бота.")
+
 @dp.message()
 async def handle_message(message: types.Message):
     """Handle all other messages - check for banned words and shop applications."""
