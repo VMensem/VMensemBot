@@ -10,7 +10,7 @@ def get_admin_keyboard() -> ReplyKeyboardMarkup:
         ],
         [
             KeyboardButton(text="/ap"),
-            KeyboardButton(text="/stuff"),
+            KeyboardButton(text="/stats"),
             KeyboardButton(text="/staff")
         ],
         [

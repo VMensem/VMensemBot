@@ -162,11 +162,27 @@ async def cmd_staff(message: types.Message):
     try:
         admins = data_manager.get_admins()
         admin_count = len(admins)
-
+        
+        # Получение юзернеймов администраторов
+        admin_usernames = []
+        for admin_id in admins:
+            try:
+                # Попытка получить информацию о пользователе
+                user = await bot.get_chat(admin_id)
+                username = f"@{user.username}" if user.username else f"ID: {admin_id}"
+                admin_usernames.append(f"• {username}")
+            except Exception:
+                # Если не удалось получить информацию, используем ID
+                admin_usernames.append(f"• ID: {admin_id}")
+        
+        admin_list = "\n".join(admin_usernames)
+        
         staff_info = (
             "<b>Информация о Персонале:</b>\n\n"
             f"Всего администраторов: {admin_count}\n"
             f"Создатель бота: {CREATOR_USERNAME}\n\n"
+            "<b>Список администраторов:</b>\n"
+            f"{admin_list}\n\n"
             "По всем вопросам обращайтесь к администраторам."
         )
 
@@ -175,9 +191,9 @@ async def cmd_staff(message: types.Message):
         logger.error(f"Error in staff command: {e}")
         await message.reply("Произошла ошибка при получении информации о персонале. Попробуйте позже.")
 
-@dp.message(Command("stuff"), IsAdmin())
-async def cmd_stuff(message: types.Message):
-    """Handle /stuff command for admins."""
+@dp.message(Command("stats"), IsCreator())
+async def cmd_stats(message: types.Message):
+    """Handle /stats command for creator only."""
     try:
         admins = data_manager.get_admins()
         banned_words = data_manager.get_banned_words()
@@ -192,7 +208,7 @@ async def cmd_stuff(message: types.Message):
         )
         await message.reply(stats)
     except Exception as e:
-        logger.error(f"Error in stuff command: {e}")
+        logger.error(f"Error in stats command: {e}")
         await message.reply("Произошла ошибка при получении статистики. Попробуйте позже.")
 
 @dp.message(Command("addadmin"), IsCreator())
