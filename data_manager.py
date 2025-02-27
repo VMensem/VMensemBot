@@ -1,7 +1,7 @@
 import json
 import os
 from typing import List, Dict, Any
-from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE, INFO_FILE, SCRIPTS_FILE
+from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE, INFO_FILE
 
 class DataManager:
     def __init__(self):
@@ -17,7 +17,6 @@ class DataManager:
             ADMINS_FILE: {"admins": []},
             BANNED_WORDS_FILE: {"words": []},
             INFO_FILE: {"info": "Информация пока не установлена."},
-            SCRIPTS_FILE: {"scripts": []},
             "data/rank.json": {"rank_message": "Информация о рангах пока не установлена."} 
         }
 
@@ -110,54 +109,7 @@ class DataManager:
         info = info.replace("<", "&lt;").replace(">", "&gt;")
         return self._write_json(INFO_FILE, {"info": info})
 
-    def get_scripts(self) -> List[str]:
-        """Get list of scripts."""
-        data = self._read_json(SCRIPTS_FILE)
-        return data.get("scripts", [])
-
-    def add_script(self, description: str, file_data: bytes, filename: str) -> bool:
-        """Add new script with file."""
-        try:
-            if not os.path.exists('scripts'):
-                os.makedirs('scripts')
-            
-            # Сохраняем файл
-            file_path = os.path.join('scripts', filename)
-            with open(file_path, 'wb') as f:
-                f.write(file_data)
-            
-            # Сохраняем информацию о скрипте
-            data = self._read_json(SCRIPTS_FILE)
-            scripts = data.get("scripts", [])
-            scripts.append({
-                "description": description,
-                "filename": filename,
-                "path": file_path
-            })
-            return self._write_json(SCRIPTS_FILE, {"scripts": scripts})
-        except Exception as e:
-            print(f"Error in add_script: {e}")
-            return False
-
-    def remove_script(self, index: int) -> bool:
-        """Remove script by index."""
-        try:
-            data = self._read_json(SCRIPTS_FILE)
-            scripts = data.get("scripts", [])
-            print(f"Current scripts before removal: {scripts}")  # Debug log
-
-            if 0 <= index < len(scripts):
-                removed_script = scripts.pop(index)
-                print(f"Removing script at index {index}: {removed_script}")  # Debug log
-                success = self._write_json(SCRIPTS_FILE, {"scripts": scripts})
-                print(f"Write operation success: {success}")  # Debug log
-                return success
-            else:
-                print(f"Invalid index {index} for scripts list of length {len(scripts)}")  # Debug log
-                return False
-        except Exception as e:
-            print(f"Error in remove_script: {e}")  # Debug log
-            return False
+    
 
     def get_rank_message(self) -> str:
         """Get rank message."""
