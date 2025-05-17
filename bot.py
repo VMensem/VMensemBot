@@ -21,7 +21,7 @@ from config import (
     RANK_MESSAGE, ADMIN_PANEL_MESSAGE, CREATOR_USERNAME, WORDS_MESSAGE, SHOP_HELP_MESSAGE, MANAGEMENT_CHAT_ID
 )
 from data_manager import DataManager
-from keyboards import get_admin_keyboard, get_user_keyboard
+from keyboards import get_admin_keyboard, get_user_keyboard, get_creator_keyboard
 from filters import IsAdmin, IsCreator
 from typing import List
 
@@ -90,7 +90,14 @@ async def cmd_start(message: types.Message):
 
         # Now try to create and send keyboard
         try:
-            keyboard = get_admin_keyboard() if is_creator else get_user_keyboard()
+            # Выбор клавиатуры в зависимости от роли
+            if is_creator:
+                keyboard = get_creator_keyboard()
+            elif user_id in data_manager.get_admins():
+                keyboard = get_admin_keyboard()
+            else:
+                keyboard = get_user_keyboard()
+                
             logger.debug(f"Created keyboard for user {user_id} (Creator: {is_creator})")
             await message.reply("Вот доступные вам команды:", reply_markup=keyboard)
             logger.info(f"Successfully sent keyboard to user {user_id}")
