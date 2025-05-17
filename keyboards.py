@@ -55,7 +55,11 @@ def get_user_keyboard() -> ReplyKeyboardMarkup:
         ],
         [
             KeyboardButton(text="/staff"),
-            KeyboardButton(text="/help")
+            KeyboardButton(text="/help"),
+            KeyboardButton(text="/id")
+        ],
+        [
+            KeyboardButton(text="/shop")
         ]
     ]
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)

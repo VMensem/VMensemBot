@@ -90,13 +90,8 @@ async def cmd_start(message: types.Message):
 
         # Now try to create and send keyboard
         try:
-            # Выбор клавиатуры в зависимости от роли
-            if is_creator:
-                keyboard = get_creator_keyboard()
-            elif user_id in data_manager.get_admins():
-                keyboard = get_admin_keyboard()
-            else:
-                keyboard = get_user_keyboard()
+            # Использовать одинаковую клавиатуру для всех пользователей
+            keyboard = get_user_keyboard()
                 
             logger.debug(f"Created keyboard for user {user_id} (Creator: {is_creator})")
             await message.reply("Вот доступные вам команды:", reply_markup=keyboard)
