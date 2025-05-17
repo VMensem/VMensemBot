@@ -548,9 +548,6 @@ async def main():
             # Initialize bot with reconnection logic
             bot = await create_bot_instance()
 
-            # Notify creator about bot start
-            await notify_creator(f"✅ Бот успешно запущен и готов к работе! (Перезапуск #{restart_count})")
-
             # Start polling with clean updates
             await bot.delete_webhook(drop_pending_updates=True)
             logger.info("Starting polling...")
@@ -558,10 +555,6 @@ async def main():
 
         except Exception as e:
             logger.error(f"Critical error in main loop: {e}")
-            try:
-                await notify_creator(f"❌ Произошла критическая ошибка, бот остановлен.\nОшибка: {str(e)}")
-            except:
-                pass
             
             # Exponential backoff for reconnection attempts
             wait_time = min(30, 5 * (restart_count % 5 + 1))
@@ -569,10 +562,6 @@ async def main():
             await asyncio.sleep(wait_time)
         finally:
             if bot is not None:
-                try:
-                    await notify_creator("🔄 Бот останавливается и будет автоматически перезапущен...")
-                except:
-                    pass
                 try:
                     await bot.session.close()
                 except:
