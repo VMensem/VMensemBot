@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
@@ -12,6 +13,9 @@ from aiogram.types import (
 )
 import asyncio
 from datetime import datetime
+import threading
+import time
+from aiohttp import web
 from config import (
     BOT_TOKEN, CREATOR_ID, WELCOME_MESSAGE, HELP_MESSAGE,
     RANK_MESSAGE, ADMIN_PANEL_MESSAGE, CREATOR_USERNAME, WORDS_MESSAGE, SHOP_HELP_MESSAGE, MANAGEMENT_CHAT_ID
@@ -510,18 +514,42 @@ async def notify_creator(message: str):
     except Exception as e:
         logger.error(f"Failed to send notification to creator: {e}")
 
+async def web_server():
+    """Simple web server to keep the bot alive."""
+    app = web.Application()
+    
+    async def handle(request):
+        return web.Response(text="Бот активен и работает!")
+    
+    app.router.add_get("/", handle)
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 5000)
+    await site.start()
+    logger.info("Web server started on port 5000")
+
 async def main():
     """Main function to start the bot with reconnection logic."""
+    # Start web server to keep the bot alive
+    asyncio.create_task(web_server())
+    
+    # Set higher reconnection parameters for 24/7 operation
+    global MAX_RECONNECT_ATTEMPTS
+    MAX_RECONNECT_ATTEMPTS = 100  # Increased from 5 for better persistence
+    
+    restart_count = 0
     while True:
         try:
-            logger.info("Starting bot...")
+            restart_count += 1
+            logger.info(f"Starting bot... (Restart #{restart_count})")
             global bot
 
             # Initialize bot with reconnection logic
             bot = await create_bot_instance()
 
             # Notify creator about bot start
-            await notify_creator("✅ Бот успешно запущен и готов к работе!")
+            await notify_creator(f"✅ Бот успешно запущен и готов к работе! (Перезапуск #{restart_count})")
 
             # Start polling with clean updates
             await bot.delete_webhook(drop_pending_updates=True)
@@ -534,18 +562,37 @@ async def main():
                 await notify_creator(f"❌ Произошла критическая ошибка, бот остановлен.\nОшибка: {str(e)}")
             except:
                 pass
-            logger.info("Restarting bot in 5 seconds...")
-            await asyncio.sleep(5)
+            
+            # Exponential backoff for reconnection attempts
+            wait_time = min(30, 5 * (restart_count % 5 + 1))
+            logger.info(f"Restarting bot in {wait_time} seconds...")
+            await asyncio.sleep(wait_time)
         finally:
             if bot is not None:
                 try:
-                    await notify_creator("🔄 Бот останавливается...")
+                    await notify_creator("🔄 Бот останавливается и будет автоматически перезапущен...")
                 except:
                     pass
-                await bot.session.close()
+                try:
+                    await bot.session.close()
+                except:
+                    pass
 
 
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Add signal handlers to gracefully handle interruptions
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        logger.info("Запуск бота в режиме 24/7...")
+        loop.run_until_complete(main())
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Получен сигнал остановки бота.")
+    except Exception as e:
+        logger.critical(f"Критическая ошибка: {e}", exc_info=True)
+    finally:
+        logger.info("Завершение работы бота...")
+        loop.close()

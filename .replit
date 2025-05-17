@@ -5,7 +5,7 @@ run = "Python bot.py"
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Telegram Bot"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -25,11 +25,13 @@ mode = "sequential"
 agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python bot.py"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "python bot.py"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
