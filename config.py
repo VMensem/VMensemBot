@@ -16,8 +16,8 @@ INFO_FILE: Final = "data/info.json"
 # Message templates
 WELCOME_MESSAGE: Final = """
 Добро пожаловать в MensemBot!
-Используйте /help чтобы увидеть доступные команды.
-Чат Mensem Family - https://t.me/+KhI_NQYp-eRjNDUy
+Вся информация в /info
+Чат Mensem Family - https://t.me/mensemsamp
 """
 
 HELP_MESSAGE: Final = """
