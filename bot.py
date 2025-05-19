@@ -523,6 +523,19 @@ async def notify_creator(message: str):
 
 # Web-сервер для поддержания бота активным запускается через keep_alive()
 
+async def send_periodic_ping():
+    """Отправляет периодическое сообщение создателю, чтобы поддерживать бота активным."""
+    while True:
+        try:
+            if bot is not None:
+                logger.info("Отправка пинг-сообщения создателю")
+                await bot.send_message(CREATOR_ID, "🔄 Пинг от бота — я всё ещё работаю!")
+        except Exception as e:
+            logger.error(f"Ошибка при отправке пинг-сообщения: {e}")
+        
+        # Ожидание 5 минут перед следующей отправкой
+        await asyncio.sleep(5 * 60)  # 300 секунд = 5 минут
+
 async def main():
     """Main function to start the bot with reconnection logic."""
     # Web-сервер уже запущен через keep_alive()
@@ -540,6 +553,9 @@ async def main():
 
             # Initialize bot with reconnection logic
             bot = await create_bot_instance()
+
+            # Запуск периодической задачи для пинга
+            asyncio.create_task(send_periodic_ping())
 
             # Start polling with clean updates
             await bot.delete_webhook(drop_pending_updates=True)
