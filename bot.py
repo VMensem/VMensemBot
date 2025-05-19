@@ -1,6 +1,11 @@
+
 import logging
 import os
 import sys
+from keep_alive import keep_alive
+
+keep_alive()  # запускает веб-сервер
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
@@ -516,25 +521,11 @@ async def notify_creator(message: str):
     except Exception as e:
         logger.error(f"Failed to send notification to creator: {e}")
 
-async def web_server():
-    """Simple web server to keep the bot alive."""
-    app = web.Application()
-    
-    async def handle(request):
-        return web.Response(text="Бот активен и работает!")
-    
-    app.router.add_get("/", handle)
-    
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 5000)
-    await site.start()
-    logger.info("Web server started on port 5000")
+# Web-сервер для поддержания бота активным запускается через keep_alive()
 
 async def main():
     """Main function to start the bot with reconnection logic."""
-    # Start web server to keep the bot alive
-    asyncio.create_task(web_server())
+    # Web-сервер уже запущен через keep_alive()
     
     # Set higher reconnection parameters for 24/7 operation
     global MAX_RECONNECT_ATTEMPTS
