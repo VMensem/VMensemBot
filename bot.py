@@ -26,7 +26,7 @@ from config import (
     RANK_MESSAGE, ADMIN_PANEL_MESSAGE, CREATOR_USERNAME, WORDS_MESSAGE, SHOP_HELP_MESSAGE, MANAGEMENT_CHAT_ID
 )
 from data_manager import DataManager
-from keyboards import get_admin_keyboard, get_user_keyboard, get_creator_keyboard
+# Клавиатуры удалены, команды настроены через BotFather
 from filters import IsAdmin, IsCreator
 from typing import List
 
@@ -93,18 +93,8 @@ async def cmd_start(message: types.Message):
         await message.reply(WELCOME_MESSAGE)
         logger.info(f"Sent initial welcome message to user {user_id}")
 
-        # Now try to create and send keyboard
-        try:
-            # Использовать одинаковую клавиатуру для всех пользователей
-            keyboard = get_user_keyboard()
-                
-            logger.debug(f"Created keyboard for user {user_id} (Creator: {is_creator})")
-            await message.reply("Вот доступные вам команды:", reply_markup=keyboard)
-            logger.info(f"Successfully sent keyboard to user {user_id}")
-        except Exception as keyboard_error:
-            logger.error(f"Keyboard creation error for user {user_id}: {keyboard_error}", exc_info=True)
-            # Continue without keyboard if it fails
-            pass
+        # Клавиатуры удалены - команды настроены через BotFather
+        logger.info(f"Welcome message sent to user {user_id}")
 
     except Exception as e:
         logger.error(f"Critical error in start command for user {message.from_user.id}: {e}", exc_info=True)
