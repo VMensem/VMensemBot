@@ -1,0 +1,18 @@
+[project]
+name = "repl-nix-workspace"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram>=3.21.0",
+    "aiohttp-cors>=0.8.1",
+    "aiohttp>=3.12.15",
+    "arz-api>=2.1",
+    "beautifulsoup4>=4.13.4",
+    "discord-py>=2.5.2",
+    "fake-useragent>=2.2.0",
+    "openai>=1.98.0",
+    "requests>=2.32.4",
+    "selenium>=4.34.2",
+    "trafilatura>=2.0.0",
+]

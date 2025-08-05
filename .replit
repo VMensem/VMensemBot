@@ -3,6 +3,7 @@ run = "Python bot.py"
 
 [nix]
 channel = "stable-24_05"
+packages = ["unzip"]
 
 [workflows]
 runButton = "Project"

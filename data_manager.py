@@ -111,12 +111,17 @@ class DataManager:
 
     
 
-    def get_rank_message(self) -> str:
+    def get_rank(self) -> str:
         """Get rank message."""
         data = self._read_json("data/rank.json")
         return data.get("rank_message", "Информация о рангах пока не установлена.")
 
-    def set_rank_message(self, message: str) -> bool:
+    def set_rank(self, message: str) -> bool:
         """Set rank message."""
         message = message.replace("<", "&lt;").replace(">", "&gt;")
         return self._write_json("data/rank.json", {"rank_message": message})
+
+    def is_admin(self, user_id: int) -> bool:
+        """Check if user is admin."""
+        admins = self.get_admins()
+        return user_id in admins
