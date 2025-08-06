@@ -10,6 +10,9 @@ MANAGEMENT_CHAT_ID: Final = -1002473077041
 
 # Discord Bot Configuration  
 DISCORD_TOKEN: Final = os.getenv('DISCORD_TOKEN', '')
+DISCORD_APPLICATION_ID: Final = os.getenv('DISCORD_APPLICATION_ID', '')
+DISCORD_PUBLIC_KEY: Final = os.getenv('DISCORD_PUBLIC_KEY', '')
+DISCORD_USE_INTERACTIONS: Final = os.getenv('DISCORD_USE_INTERACTIONS', 'false').lower() == 'true'
 
 # Arizona RP API Configuration
 API_KEY: Final = os.getenv('API_KEY', '')

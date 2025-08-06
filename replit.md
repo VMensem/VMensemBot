@@ -103,3 +103,11 @@ Preferred communication style: Simple, everyday language.
 - Added validation for optional API keys (DISCORD_TOKEN, API_KEY)
 - Maintained backward compatibility with existing Telegram-only setup
 - Enhanced logging and monitoring for dual-platform operation
+
+### Discord Interactions Support (August 2025)
+- Added Discord Interactions Endpoint URL support as alternative to WebSocket
+- Created discord_interactions.py for HTTP webhook handling
+- Implemented slash commands with embed responses
+- Added health check endpoint for monitoring
+- Enhanced Flask server with Discord webhook routes
+- Reduced resource consumption by eliminating persistent WebSocket connection
