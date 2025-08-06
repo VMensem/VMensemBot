@@ -19,12 +19,12 @@ from unified_config import API_KEY
 try:
     from arizona_api import ArizonaAPI
 except ImportError:
-    ArizonaAPI = None
+    ArizonaAPI = type(None)  # Создаем тип для проверки
 
 logger = logging.getLogger(__name__)
 
 class DiscordInteractionsHandler:
-    def __init__(self, data_manager: DataManager, arizona_api: Optional[ArizonaAPI] = None):
+    def __init__(self, data_manager: DataManager, arizona_api: Optional[Any] = None):
         self.data_manager = data_manager
         self.arizona_api = arizona_api
         self.application_id = os.getenv('DISCORD_APPLICATION_ID')

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: mensembot
+    env: python
+    repo: https://github.com/ваш-username/MensemBot.git  # Замените на ваш репозиторий
+    buildCommand: pip install -r render_requirements.txt
+    startCommand: python bot.py
+    plan: free
+    autoDeploy: false
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_APPLICATION_ID
+        sync: false
+      - key: DISCORD_PUBLIC_KEY
+        sync: false
+      - key: DISCORD_USE_INTERACTIONS
+        value: true
+      - key: API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.10
