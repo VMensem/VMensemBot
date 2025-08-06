@@ -18,7 +18,7 @@ task = "workflow.run"
 args = "Telegram Bot"
 
 [[workflows.workflow]]
-name = "Telegram Bot"
+name = "Mensem Bot"
 author = "agent"
 mode = "sequential"
 
@@ -28,7 +28,15 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python bot.py"
-waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Run"
+mode = "parallel"
+author = 42817729
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mensem Bot"
 
 [deployment]
 run = ["sh", "-c", "python bot.py"]

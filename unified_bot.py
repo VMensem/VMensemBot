@@ -154,6 +154,128 @@ class UnifiedBot:
                 return
             
             await message.answer(SHOP_HELP_MESSAGE)
+
+        # Shop application handler (media with caption)
+        @self.dp.message(F.photo | F.video, F.chat.type == 'private')
+        async def shop_application_handler(message: Message):
+            if not message.caption:
+                return  # Ignore media without caption
+                
+            caption = message.caption.strip()
+            
+            # Check if it's a shop application (contains required fields)
+            if any(keyword in caption.lower() for keyword in ['ник:', 'ранг:', 'доказательства:']):
+                user = message.from_user
+                user_info = f"👤 @{user.username}" if user.username else f"👤 {user.first_name}"
+                
+                application_text = f"""
+🛍️ <b>НОВАЯ ЗАЯВКА В МАГАЗИН</b>
+
+{user_info} (ID: {user.id})
+
+📝 <b>Заявка:</b>
+{caption}
+
+⏰ Время подачи: {message.date.strftime('%d.%m.%Y %H:%M')}
+"""
+                
+                try:
+                    # Forward media to creator
+                    if message.photo:
+                        await self.telegram_bot.send_photo(
+                            CREATOR_ID,
+                            message.photo[-1].file_id,
+                            caption=application_text,
+                            parse_mode="HTML"
+                        )
+                    elif message.video:
+                        await self.telegram_bot.send_video(
+                            CREATOR_ID,
+                            message.video.file_id,
+                            caption=application_text,
+                            parse_mode="HTML"
+                        )
+                    
+                    await message.answer(
+                        "✅ Ваша заявка успешно отправлена!\n"
+                        "📨 Создатель получил уведомление и рассмотрит заявку в ближайшее время."
+                    )
+                    
+                    logger.info(f"Shop application sent from {user.id} to creator")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to send shop application: {e}")
+                    await message.answer(
+                        "❌ Произошла ошибка при отправке заявки.\n"
+                        "Попробуйте позже или обратитесь к администратору."
+                    )
+
+        # Idea command  
+        @self.dp.message(Command("idea"))
+        async def idea_command(message: Message):
+            args = message.text.split(maxsplit=1) if message.text else []
+            
+            if len(args) < 2:
+                await message.answer(
+                    "💡 <b>Команда /idea</b>\n\n"
+                    "Отправьте свою идею руководству семьи!\n\n"
+                    "<b>Использование:</b> /idea Ваша идея\n\n"
+                    "<b>Пример:</b> /idea Предлагаю добавить еженедельные турниры",
+                    parse_mode="HTML"
+                )
+                return
+                
+            idea_text = args[1].strip()
+            
+            if len(idea_text) < 10:
+                await message.answer("❌ Идея слишком короткая. Опишите её подробнее (минимум 10 символов).")
+                return
+                
+            user = message.from_user
+            user_info = f"@{user.username}" if user.username else user.first_name
+            
+            idea_message = f"""
+💡 <b>НОВАЯ ИДЕЯ ОТ ИГРОКА</b>
+
+👤 <b>От:</b> {user_info} (ID: {user.id})
+💬 <b>Чат:</b> {message.chat.title or 'Личные сообщения'}
+
+📝 <b>Идея:</b>
+{idea_text}
+
+⏰ <b>Время:</b> {message.date.strftime('%d.%m.%Y %H:%M')}
+"""
+            
+            try:
+                # Send to creator
+                await self.telegram_bot.send_message(
+                    CREATOR_ID,
+                    idea_message,
+                    parse_mode="HTML"
+                )
+                
+                # Send to family leadership chat if configured
+                family_chat_id = self.data_manager.get_family_chat_id()
+                if family_chat_id:
+                    await self.telegram_bot.send_message(
+                        family_chat_id,
+                        idea_message,
+                        parse_mode="HTML"
+                    )
+                
+                await message.answer(
+                    "✅ Ваша идея успешно отправлена руководству семьи!\n"
+                    "📨 Спасибо за участие в развитии проекта."
+                )
+                
+                logger.info(f"Idea sent from {user.id}: {idea_text[:50]}...")
+                
+            except Exception as e:
+                logger.error(f"Failed to send idea: {e}")
+                await message.answer(
+                    "❌ Произошла ошибка при отправке идеи.\n"
+                    "Попробуйте позже или обратитесь к администратору."
+                )
         
         # Arizona RP Stats command
         @self.dp.message(Command("stats"))
@@ -298,6 +420,23 @@ class UnifiedBot:
             stats += f"🚫 Запрещенных слов: {len(self.data_manager.get_banned_words())}"
             
             await message.answer(stats, parse_mode="HTML")
+
+        # Set family chat command (creator only)
+        @self.dp.message(Command("setfamilychat"), IsCreator())
+        async def setfamilychat_command(message: Message):
+            if message.chat.type == 'private':
+                await message.answer("❌ Эта команда работает только в групповых чатах.")
+                return
+                
+            chat_id = message.chat.id
+            if self.data_manager.set_family_chat_id(chat_id):
+                await message.answer(
+                    f"✅ Чат семьи установлен!\n"
+                    f"💬 ID чата: {chat_id}\n"
+                    f"📝 Идеи игроков теперь будут приходить сюда."
+                )
+            else:
+                await message.answer("❌ Произошла ошибка при установке чата семьи.")
         
         # Banned words filter
         @self.dp.message(F.text)

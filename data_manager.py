@@ -1,7 +1,10 @@
 import json
 import os
-from typing import List, Dict, Any
+import logging
+from typing import List, Dict, Any, Optional
 from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE, INFO_FILE
+
+logger = logging.getLogger(__name__)
 
 class DataManager:
     def __init__(self):
@@ -125,3 +128,25 @@ class DataManager:
         """Check if user is admin."""
         admins = self.get_admins()
         return user_id in admins
+    
+    def get_family_chat_id(self) -> Optional[int]:
+        """Get family leadership chat ID for idea forwarding"""
+        data = self._read_json(INFO_FILE)
+        family_chat = data.get("family_chat_id")
+        if family_chat:
+            try:
+                return int(family_chat)
+            except ValueError:
+                return None
+        return None
+        
+    def set_family_chat_id(self, chat_id: int) -> bool:
+        """Set family leadership chat ID"""
+        try:
+            data = self._read_json(INFO_FILE)
+            data["family_chat_id"] = chat_id
+            self._write_json(INFO_FILE, data)
+            return True
+        except Exception as e:
+            logger.error(f"Error setting family chat ID: {e}")
+            return False
