@@ -406,7 +406,7 @@ class UnifiedBot:
                 staff_text = "\n".join(staff_list)
                 await message.answer(f"👥 <b>Администрация:</b>\n\n{staff_text}", parse_mode="HTML")
             else:
-                await message.answer("👥 <b>Администрация:</b>\n\nСписок пуст")
+                await message.answer("👥Администрация:\n\nСписок пуст")
 
         # Admin management (Creator only)
         @self.dp.message(Command("addadmin"), IsCreator())
