@@ -409,10 +409,7 @@ class UnifiedBot:
             if admin_usernames:
                 staff_list = []
                 for admin_id, username in admin_usernames.items():
-                    if username.startswith("ID_"):
-                        staff_list.append(f"• ID: {admin_id}")
-                    else:
-                        staff_list.append(f"• @{username}")
+                    staff_list.append(f"• @{username}")
                 
                 staff_text = "\n".join(staff_list)
                 await message.answer(f"👥 <b>Администрация:</b>\n\n{staff_text}", parse_mode="HTML")
