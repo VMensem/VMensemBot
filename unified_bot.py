@@ -402,6 +402,23 @@ class UnifiedBot:
             else:
                 await message.answer("📝 <b>Запрещенные слова:</b>\n\nСписок пуст")
         
+        # Show staff list
+        @self.dp.message(Command("staff"))
+        async def staff_command(message: Message):
+            admin_usernames = self.data_manager.get_admin_usernames()
+            if admin_usernames:
+                staff_list = []
+                for admin_id, username in admin_usernames.items():
+                    if username.startswith("ID_"):
+                        staff_list.append(f"• ID: {admin_id}")
+                    else:
+                        staff_list.append(f"• @{username}")
+                
+                staff_text = "\n".join(staff_list)
+                await message.answer(f"👥 <b>Администрация:</b>\n\n{staff_text}", parse_mode="HTML")
+            else:
+                await message.answer("👥 <b>Администрация:</b>\n\nСписок пуст")
+
         # Admin management (Creator only)
         @self.dp.message(Command("addadmin"), IsCreator())
         async def add_admin_command(message: Message):
@@ -412,8 +429,10 @@ class UnifiedBot:
             user_id = message.reply_to_message.from_user.id
             username = message.reply_to_message.from_user.username or message.reply_to_message.from_user.first_name
             
-            self.data_manager.add_admin(user_id)
-            await message.answer(f"✅ Пользователь {username} (ID: {user_id}) добавлен в администраторы.")
+            if self.data_manager.add_admin(user_id, username):
+                await message.answer(f"✅ Пользователь @{username} (ID: {user_id}) добавлен в админы.")
+            else:
+                await message.answer(f"❌ Пользователь @{username} уже является админом.") добавлен в администраторы.")
         
         @self.dp.message(Command("unadmin"), IsCreator())
         async def remove_admin_command(message: Message):

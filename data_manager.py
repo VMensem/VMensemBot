@@ -59,14 +59,38 @@ class DataManager:
     def get_admins(self) -> List[int]:
         """Get list of admin IDs."""
         data = self._read_json(ADMINS_FILE)
-        return data.get("admins", [])
+        # Support both old format (list of IDs) and new format (dict with usernames)
+        admins = data.get("admins", [])
+        if isinstance(admins, list):
+            return admins
+        elif isinstance(admins, dict):
+            return list(admins.keys())
+        return []
 
-    def add_admin(self, admin_id: int) -> bool:
-        """Add new admin."""
+    def get_admin_usernames(self) -> Dict[int, str]:
+        """Get dict of admin IDs to usernames."""
         data = self._read_json(ADMINS_FILE)
         admins = data.get("admins", [])
-        if admin_id not in admins:
-            admins.append(admin_id)
+        if isinstance(admins, dict):
+            # Convert string keys back to int
+            return {int(k): v for k, v in admins.items()}
+        return {}
+
+    def add_admin(self, admin_id: int, username: str = None) -> bool:
+        """Add new admin with username."""
+        data = self._read_json(ADMINS_FILE)
+        admins = data.get("admins", [])
+        
+        # Convert old format to new format if needed
+        if isinstance(admins, list):
+            admin_dict = {}
+            for old_id in admins:
+                admin_dict[str(old_id)] = f"ID_{old_id}"
+            admins = admin_dict
+        
+        admin_id_str = str(admin_id)
+        if admin_id_str not in admins:
+            admins[admin_id_str] = username or f"ID_{admin_id}"
             return self._write_json(ADMINS_FILE, {"admins": admins})
         return False
 
@@ -74,9 +98,16 @@ class DataManager:
         """Remove admin."""
         data = self._read_json(ADMINS_FILE)
         admins = data.get("admins", [])
-        if admin_id in admins:
-            admins.remove(admin_id)
-            return self._write_json(ADMINS_FILE, {"admins": admins})
+        
+        if isinstance(admins, list):
+            if admin_id in admins:
+                admins.remove(admin_id)
+                return self._write_json(ADMINS_FILE, {"admins": admins})
+        elif isinstance(admins, dict):
+            admin_id_str = str(admin_id)
+            if admin_id_str in admins:
+                del admins[admin_id_str]
+                return self._write_json(ADMINS_FILE, {"admins": admins})
         return False
 
     def get_banned_words(self) -> List[str]:
