@@ -430,10 +430,10 @@ class UnifiedBot:
             username = message.reply_to_message.from_user.username or message.reply_to_message.from_user.first_name
             
             if self.data_manager.add_admin(user_id, username):
-                await message.answer(f"✅ Пользователь @{username} (ID: {user_id}) добавлен в админы.")
+                await message.answer(f"✅ Пользователь @{username} (ID: {user_id}) добавлен в администраторы.")
             else:
-                await message.answer(f"❌ Пользователь @{username} уже является админом.") добавлен в администраторы.")
-        
+                await message.answer(f"❌ Пользователь @{username} уже является администратором.")
+     
         @self.dp.message(Command("unadmin"), IsCreator())
         async def remove_admin_command(message: Message):
             if not message.reply_to_message:
