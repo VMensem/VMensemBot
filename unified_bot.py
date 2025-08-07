@@ -121,15 +121,7 @@ class UnifiedBot:
             self.data_manager.set_rank(new_rank)
             await message.answer("✅ Информация о рангах успешно обновлена!")
         
-        # Staff command
-        @self.dp.message(Command("staff"))
-        async def staff_command(message: Message):
-            admins = self.data_manager.get_admins()
-            if admins:
-                staff_list = "\n".join([f"• {admin}" for admin in admins])
-                await message.answer(f"👥 <b>Администрация:</b>\n\n{staff_list}", parse_mode="HTML")
-            else:
-                await message.answer("👥 <b>Администрация:</b>\n\nСписок пуст")
+        
         
         # ID command
         @self.dp.message(Command("id"))
