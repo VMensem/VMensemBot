@@ -86,6 +86,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+### Rank Application System (August 7, 2025)
+- Fixed /shop functionality - now processes rank applications instead of shop requests
+- Added inline keyboard buttons (Выдано/Отказано) for family leadership
+- Rank applications sent to family leadership chat with approval buttons
+- Creator receives only notification messages, not full applications
+- Added callback handler for rank approval/rejection with user notifications
+- Updated SHOP_HELP_MESSAGE to reflect rank application process
+
+### Idea System Improvements (August 7, 2025)
+- /idea command sends full message to family leadership chat
+- Creator receives only notification "Новая идея в руководстве семьи!"
+- Streamlined notification system to reduce creator message volume
+
+## Previous Changes
+
 ### GameStatFinder Integration
 - Successfully integrated GameStatFinder.zip functionality
 - Added Arizona RP player statistics lookup via Deps API

@@ -12,7 +12,7 @@ from typing import Optional
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message, BotCommand
+from aiogram.types import Message, BotCommand, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.exceptions import TelegramAPIError
 
 from unified_config import (
@@ -169,7 +169,7 @@ class UnifiedBot:
                 user_info = f"👤 @{user.username}" if user.username else f"👤 {user.first_name}"
                 
                 application_text = f"""
-🛍️ <b>НОВАЯ ЗАЯВКА В МАГАЗИН</b>
+⭐ <b>НОВАЯ ЗАЯВКА НА РАНГ</b>
 
 {user_info} (ID: {user.id})
 
@@ -180,31 +180,55 @@ class UnifiedBot:
 """
                 
                 try:
-                    # Forward media to creator
-                    if message.photo:
-                        await self.telegram_bot.send_photo(
-                            CREATOR_ID,
-                            message.photo[-1].file_id,
-                            caption=application_text,
-                            parse_mode="HTML"
-                        )
-                    elif message.video:
-                        await self.telegram_bot.send_video(
-                            CREATOR_ID,
-                            message.video.file_id,
-                            caption=application_text,
-                            parse_mode="HTML"
-                        )
+                    # Create inline keyboard for family leadership
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="✅ Выдано",
+                                callback_data=f"rank_approve_{user.id}"
+                            ),
+                            InlineKeyboardButton(
+                                text="❌ Отказано", 
+                                callback_data=f"rank_reject_{user.id}"
+                            )
+                        ]
+                    ])
                     
-                    await message.answer(
-                        "✅ Ваша заявка успешно отправлена!\n"
-                        "📨 Создатель получил уведомление и рассмотрит заявку в ближайшее время."
+                    # Send to family leadership chat
+                    family_chat_id = self.data_manager.get_family_chat_id()
+                    if family_chat_id:
+                        if message.photo:
+                            await self.telegram_bot.send_photo(
+                                family_chat_id,
+                                message.photo[-1].file_id,
+                                caption=application_text,
+                                parse_mode="HTML",
+                                reply_markup=keyboard
+                            )
+                        elif message.video:
+                            await self.telegram_bot.send_video(
+                                family_chat_id,
+                                message.video.file_id,
+                                caption=application_text,
+                                parse_mode="HTML",
+                                reply_markup=keyboard
+                            )
+                    
+                    # Send notification to creator (without media)
+                    await self.telegram_bot.send_message(
+                        CREATOR_ID,
+                        "⭐ Новая заявка в руководство семьи!"
                     )
                     
-                    logger.info(f"Shop application sent from {user.id} to creator")
+                    await message.answer(
+                        "✅ Ваша заявка на ранг успешно отправлена!\n"
+                        "📨 Руководство семьи рассмотрит заявку в ближайшее время."
+                    )
+                    
+                    logger.info(f"Rank application sent from {user.id} to family leadership")
                     
                 except Exception as e:
-                    logger.error(f"Failed to send shop application: {e}")
+                    logger.error(f"Failed to send rank application: {e}")
                     await message.answer(
                         "❌ Произошла ошибка при отправке заявки.\n"
                         "Попробуйте позже или обратитесь к администратору."
@@ -247,14 +271,7 @@ class UnifiedBot:
 """
             
             try:
-                # Send to creator
-                await self.telegram_bot.send_message(
-                    CREATOR_ID,
-                    idea_message,
-                    parse_mode="HTML"
-                )
-                
-                # Send to family leadership chat if configured
+                # Send to family leadership chat
                 family_chat_id = self.data_manager.get_family_chat_id()
                 if family_chat_id:
                     await self.telegram_bot.send_message(
@@ -262,6 +279,12 @@ class UnifiedBot:
                         idea_message,
                         parse_mode="HTML"
                     )
+                
+                # Send notification to creator (without full text)
+                await self.telegram_bot.send_message(
+                    CREATOR_ID,
+                    "💡 Новая идея в руководстве семьи!"
+                )
                 
                 await message.answer(
                     "✅ Ваша идея успешно отправлена руководству семьи!\n"
@@ -460,6 +483,67 @@ class UnifiedBot:
                             # Can't delete message (not enough permissions)
                             await message.answer("⚠️ Ваше сообщение содержит запрещенные слова.")
                         break
+
+        # Callback query handler for rank application buttons
+        @self.dp.callback_query(F.data.startswith("rank_"))
+        async def rank_callback_handler(callback: CallbackQuery):
+            # Check if user is admin or creator
+            if callback.from_user.id != CREATOR_ID and not self.data_manager.is_admin(callback.from_user.id):
+                await callback.answer("❌ У вас нет прав для этого действия.", show_alert=True)
+                return
+            
+            action, user_id = callback.data.split("_")[1], callback.data.split("_")[2]
+            user_id = int(user_id)
+            
+            # Get user info for notification
+            admin_info = f"@{callback.from_user.username}" if callback.from_user.username else callback.from_user.first_name
+            
+            if action == "approve":
+                # Send approval notification to user
+                try:
+                    await self.telegram_bot.send_message(
+                        user_id,
+                        f"🎉 <b>Поздравляем!</b>\n\n"
+                        f"✅ Ваша заявка на ранг была одобрена!\n"
+                        f"👤 Рассмотрел: {admin_info}",
+                        parse_mode="HTML"
+                    )
+                    
+                    # Update message
+                    await callback.message.edit_caption(
+                        caption=f"{callback.message.caption}\n\n✅ <b>Заявка одобрена</b>\n👤 Рассмотрел: {admin_info}",
+                        parse_mode="HTML"
+                    )
+                    
+                    await callback.answer("✅ Заявка одобрена, пользователю отправлено уведомление.")
+                    
+                except Exception as e:
+                    logger.error(f"Error approving rank application: {e}")
+                    await callback.answer("❌ Ошибка при одобрении заявки.")
+                    
+            elif action == "reject":
+                # Send rejection notification to user
+                try:
+                    await self.telegram_bot.send_message(
+                        user_id,
+                        f"😔 <b>Заявка отклонена</b>\n\n"
+                        f"❌ Ваша заявка на ранг была отклонена.\n"
+                        f"👤 Рассмотрел: {admin_info}\n\n"
+                        f"💡 Вы можете подать новую заявку позже.",
+                        parse_mode="HTML"
+                    )
+                    
+                    # Update message
+                    await callback.message.edit_caption(
+                        caption=f"{callback.message.caption}\n\n❌ <b>Заявка отклонена</b>\n👤 Рассмотрел: {admin_info}",
+                        parse_mode="HTML"
+                    )
+                    
+                    await callback.answer("❌ Заявка отклонена, пользователю отправлено уведомление.")
+                    
+                except Exception as e:
+                    logger.error(f"Error rejecting rank application: {e}")
+                    await callback.answer("❌ Ошибка при отклонении заявки.")
     
     async def set_bot_commands(self):
         """Set bot commands for BotFather menu"""
