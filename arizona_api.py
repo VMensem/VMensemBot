@@ -7,6 +7,8 @@ import aiohttp
 from typing import Dict, Any, Tuple, Optional
 import logging
 import re
+import time
+from datetime import datetime, timedelta
 
 from unified_config import API_URL, API_KEY, REQUEST_TIMEOUT
 
@@ -19,6 +21,15 @@ class ArizonaRPAPIClient:
         self.api_url = API_URL
         self.api_key = API_KEY
         self.timeout = REQUEST_TIMEOUT
+        
+        # Кэш для статуса серверов
+        self._servers_cache = {}
+        self._cache_timestamp = None
+        self._cache_duration = 300  # 5 минут
+        
+        # Rate limiting
+        self._last_request_time = 0
+        self._request_delay = 0.5  # 500ms между запросами
 
     def validate_nickname(self, nickname: str) -> Tuple[bool, Optional[str]]:
         """
@@ -346,7 +357,7 @@ class ArizonaRPAPIClient:
 
     async def fetch_server_status(self, server_id: int) -> Dict[str, Any]:
         """
-        Fetch server status and online count
+        Fetch server status and online count with rate limiting
         
         Args:
             server_id: Arizona RP server ID
@@ -373,6 +384,9 @@ class ArizonaRPAPIClient:
                     "is_online": False
                 }
             
+            # Rate limiting
+            await self._rate_limit()
+            
             # Формируем запрос для получения информации о сервере
             url = f"{self.api_url}/server/info"
             params = {
@@ -384,7 +398,32 @@ class ArizonaRPAPIClient:
             
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(url, params=params) as response:
-                    if response.status != 200:
+                    # Обрабатываем различные HTTP статусы
+                    if response.status == 429:
+                        logger.warning(f"Rate limit exceeded for server {server_id}")
+                        return {
+                            "status": "rate_limit", 
+                            "error": "Превышен лимит запросов",
+                            "online": 0,
+                            "is_online": False
+                        }
+                    elif response.status == 401:
+                        logger.error(f"Unauthorized access for server {server_id}")
+                        return {
+                            "status": "unauthorized", 
+                            "error": "Неверный API ключ",
+                            "online": 0,
+                            "is_online": False
+                        }
+                    elif response.status == 403:
+                        logger.error(f"Forbidden access for server {server_id}")
+                        return {
+                            "status": "forbidden", 
+                            "error": "Доступ запрещен",
+                            "online": 0,
+                            "is_online": False
+                        }
+                    elif response.status != 200:
                         logger.error(f"Server info API error: HTTP {response.status}")
                         return {
                             "status": "api_error", 
@@ -398,7 +437,7 @@ class ArizonaRPAPIClient:
                     # Проверяем статус ответа
                     if data.get("status") != "ok":
                         error_msg = data.get("error", "Неизвестная ошибка API")
-                        logger.error(f"Server info API returned error: {error_msg}")
+                        logger.warning(f"Server info API returned error for server {server_id}: {error_msg}")
                         return {
                             "status": "api_error",
                             "error": error_msg,
@@ -420,7 +459,7 @@ class ArizonaRPAPIClient:
                     }
                     
         except asyncio.TimeoutError:
-            logger.error(f"Timeout fetching server {server_id} status")
+            logger.warning(f"Timeout fetching server {server_id} status")
             return {
                 "status": "timeout",
                 "error": "Превышено время ожидания",
@@ -436,44 +475,72 @@ class ArizonaRPAPIClient:
                 "is_online": False
             }
 
+    def _is_cache_valid(self) -> bool:
+        """Проверяет актуальность кэша"""
+        if not self._cache_timestamp:
+            return False
+        return (datetime.now() - self._cache_timestamp).total_seconds() < self._cache_duration
+
+    async def _rate_limit(self):
+        """Ограничение частоты запросов"""
+        current_time = time.time()
+        elapsed = current_time - self._last_request_time
+        if elapsed < self._request_delay:
+            await asyncio.sleep(self._request_delay - elapsed)
+        self._last_request_time = time.time()
+
     async def fetch_all_servers_status(self) -> Dict[int, Dict[str, Any]]:
         """
-        Fetch status for all Arizona RP servers
+        Fetch status for all Arizona RP servers with caching and rate limiting
         
         Returns:
             Dict mapping server_id to status info
         """
+        # Проверяем кэш
+        if self._is_cache_valid() and self._servers_cache:
+            logger.info("Используем кэшированные данные серверов")
+            return self._servers_cache.copy()
+        
         servers_info = {}
         
-        # Создаем задачи для всех серверов
-        tasks = []
-        server_ids = []
+        # Создаем список серверов для проверки
+        server_ids = list(range(1, 32)) + list(range(101, 104))
         
-        # ПК серверы 1-31
-        for server_id in range(1, 32):
-            tasks.append(self.fetch_server_status(server_id))
-            server_ids.append(server_id)
-        
-        # Мобайл серверы 101-103
-        for server_id in range(101, 104):
-            tasks.append(self.fetch_server_status(server_id))
-            server_ids.append(server_id)
-        
-        # Выполняем все запросы параллельно
+        # Выполняем запросы с ограничением скорости
         try:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            # Разбиваем на батчи по 5 серверов для избежания rate limit
+            batch_size = 5
+            for i in range(0, len(server_ids), batch_size):
+                batch = server_ids[i:i + batch_size]
+                batch_tasks = []
+                
+                for server_id in batch:
+                    batch_tasks.append(self.fetch_server_status(server_id))
+                
+                # Выполняем батч
+                batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+                
+                # Обрабатываем результаты батча
+                for server_id, result in zip(batch, batch_results):
+                    if isinstance(result, Exception):
+                        logger.error(f"Exception for server {server_id}: {result}")
+                        servers_info[server_id] = {
+                            "status": "error",
+                            "error": str(result),
+                            "online": 0,
+                            "is_online": False
+                        }
+                    else:
+                        servers_info[server_id] = result
+                
+                # Пауза между батчами
+                if i + batch_size < len(server_ids):
+                    await asyncio.sleep(1)
             
-            for server_id, result in zip(server_ids, results):
-                if isinstance(result, Exception):
-                    logger.error(f"Exception for server {server_id}: {result}")
-                    servers_info[server_id] = {
-                        "status": "error",
-                        "error": str(result),
-                        "online": 0,
-                        "is_online": False
-                    }
-                else:
-                    servers_info[server_id] = result
+            # Обновляем кэш
+            self._servers_cache = servers_info.copy()
+            self._cache_timestamp = datetime.now()
+            logger.info(f"Обновлен кэш статуса серверов ({len(servers_info)} серверов)")
                     
         except Exception as e:
             logger.error(f"Error fetching all servers status: {e}")
@@ -499,71 +566,114 @@ class ArizonaRPAPIClient:
             # Получаем статус всех серверов
             servers_status = await self.fetch_all_servers_status()
             
+            # Проверяем качество данных
+            total_servers = len(servers_status)
+            successful_requests = sum(1 for s in servers_status.values() if s.get("status") == "success")
+            api_errors = sum(1 for s in servers_status.values() if s.get("status") in ["rate_limit", "unauthorized", "forbidden"])
+            
             msg = "🌐 **Серверы Arizona RP:**\n\n"
+            
+            # Если много ошибок API, показываем предупреждение
+            if api_errors > total_servers * 0.5:  # Больше 50% ошибок
+                msg += "⚠️ **Предупреждение:** Ограниченные данные из-за лимитов API\n"
+                msg += f"📊 Успешных запросов: {successful_requests}/{total_servers}\n\n"
             
             # ПК серверы
             msg += "💻 **ПК серверы (1-31):**\n"
             total_online = 0
             online_servers = 0
+            unavailable_count = 0
             
             for server_id in range(1, 32):
                 server_info = servers_status.get(server_id, {})
                 server_name = self.get_server_name(server_id)
                 online_count = server_info.get("online", 0)
                 is_online = server_info.get("is_online", False)
+                status = server_info.get("status", "unknown")
                 
-                # Эмодзи статуса
-                status_emoji = "🟢" if is_online else "🔴"
-                
-                # Форматирование строки сервера
-                if is_online:
-                    msg += f"{status_emoji} {server_id:2d}: {server_name} ({online_count} игроков)\n"
-                    total_online += online_count
-                    online_servers += 1
+                # Определяем эмодзи и статус
+                if status == "success":
+                    if is_online:
+                        status_emoji = "🟢"
+                        msg += f"{status_emoji} {server_id:2d}: {server_name} ({online_count} игроков)\n"
+                        total_online += online_count
+                        online_servers += 1
+                    else:
+                        status_emoji = "🔴"
+                        msg += f"{status_emoji} {server_id:2d}: {server_name} (офлайн)\n"
+                elif status in ["rate_limit", "unauthorized", "forbidden"]:
+                    status_emoji = "🟡"
+                    msg += f"{status_emoji} {server_id:2d}: {server_name} (данные недоступны)\n"
+                    unavailable_count += 1
                 else:
-                    msg += f"{status_emoji} {server_id:2d}: {server_name} (офлайн)\n"
+                    status_emoji = "⚫"
+                    msg += f"{status_emoji} {server_id:2d}: {server_name} (ошибка)\n"
             
             # Мобайл серверы
             msg += "\n📱 **Мобайл серверы:**\n"
             mobile_online = 0
             mobile_servers_online = 0
+            mobile_unavailable = 0
             
             for server_id in range(101, 104):
                 server_info = servers_status.get(server_id, {})
                 server_name = self.get_server_name(server_id)
                 online_count = server_info.get("online", 0)
                 is_online = server_info.get("is_online", False)
+                status = server_info.get("status", "unknown")
                 
-                # Эмодзи статуса
-                status_emoji = "🟢" if is_online else "🔴"
-                
-                # Форматирование строки сервера
-                if is_online:
-                    msg += f"{status_emoji} {server_id}: {server_name} ({online_count} игроков)\n"
-                    mobile_online += online_count
-                    mobile_servers_online += 1
+                # Определяем эмодзи и статус
+                if status == "success":
+                    if is_online:
+                        status_emoji = "🟢"
+                        msg += f"{status_emoji} {server_id}: {server_name} ({online_count} игроков)\n"
+                        mobile_online += online_count
+                        mobile_servers_online += 1
+                    else:
+                        status_emoji = "🔴"
+                        msg += f"{status_emoji} {server_id}: {server_name} (офлайн)\n"
+                elif status in ["rate_limit", "unauthorized", "forbidden"]:
+                    status_emoji = "🟡"
+                    msg += f"{status_emoji} {server_id}: {server_name} (данные недоступны)\n"
+                    mobile_unavailable += 1
                 else:
-                    msg += f"{status_emoji} {server_id}: {server_name} (офлайн)\n"
+                    status_emoji = "⚫"
+                    msg += f"{status_emoji} {server_id}: {server_name} (ошибка)\n"
             
             # Статистика
             total_players = total_online + mobile_online
             total_servers_online = online_servers + mobile_servers_online
+            total_unavailable = unavailable_count + mobile_unavailable
             
             msg += f"\n📊 **Статистика:**\n"
-            msg += f"🎮 Всего игроков онлайн: {total_players:,}\n"
-            msg += f"🖥️ ПК серверов онлайн: {online_servers}/31\n"
-            msg += f"📱 Мобайл серверов онлайн: {mobile_servers_online}/3\n"
-            msg += f"⚡ Всего серверов онлайн: {total_servers_online}/34\n\n"
             
-            msg += "📝 Использование: /stats <ник> <ID сервера>\n"
-            msg += "💡 Пример: /stats PlayerName 1"
+            if successful_requests > 0:
+                msg += f"🎮 Игроков онлайн: {total_players:,}\n"
+                msg += f"🖥️ ПК серверов онлайн: {online_servers}/31\n"
+                msg += f"📱 Мобайл серверов онлайн: {mobile_servers_online}/3\n"
+                msg += f"⚡ Всего серверов онлайн: {total_servers_online}/34\n"
+                
+                if total_unavailable > 0:
+                    msg += f"🟡 Недоступно данных: {total_unavailable} серверов\n"
+            else:
+                msg += f"⚠️ Данные о серверах временно недоступны\n"
+                msg += f"🔄 Попробуйте позже или обратитесь к администратору\n"
+            
+            msg += f"\n📝 Использование: /stats <ник> <ID сервера>\n"
+            msg += f"💡 Пример: /stats PlayerName 1\n\n"
+            
+            # Легенда статусов если есть недоступные данные
+            if total_unavailable > 0:
+                msg += "**Статусы:**\n"
+                msg += "🟢 Онлайн | 🔴 Офлайн | 🟡 Данные недоступны"
             
             return msg
             
         except Exception as e:
             logger.error(f"Error getting servers info with status: {e}")
             # Возвращаем базовую информацию в случае ошибки
-            return self.get_servers_info()
+            fallback = self.get_servers_info()
+            return f"⚠️ **Статус серверов временно недоступен**\n\n{fallback}\n\n💡 Данные обновляются автоматически"
 
 # Global API client instance
 arizona_api = ArizonaRPAPIClient()
