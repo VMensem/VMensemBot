@@ -106,7 +106,7 @@ class DiscordBotHandlers:
                           help="Показать все серверы Arizona RP")
         async def discord_servers(ctx: commands.Context):
             """Discord servers command"""
-            server_msg = "🌐 **Серверы Arizona RP:**\n\n"
+            server_msg = "**Серверы Arizona RP:**\n\n"
 
             # ПК серверы
             server_msg += "💻 **ПК серверы (1-31):**\n"

@@ -156,40 +156,47 @@ class DiscordInteractionsHandler:
             return self.error_response("Arizona RP API не настроен")
         
         servers_info = """
-**🌵 Arizona RP Servers**
+**💻 ПК серверы (1-31):**
+ 1: Phoenix
+ 2: Tucson
+ 3: Scottdale
+ 4: Chandler
+ 5: Brainburg
+ 6: Saint Rose
+ 7: Mesa
+ 8: Red Rock
+ 9: Yuma
+10: Surprise
+11: Prescott
+12: Glendale
+13: Kingman
+14: Winslow
+15: Payson
+16: Gilbert
+17: Show Low
+18: Casa Grande
+19: Page
+20: Sun City
+21: Queen Creek
+22: Sedona
+23: Holiday
+24: Wednesday
+25: Yava
+26: Faraway
+27: Bumble Bee
+28: Christmas
+29: Mirage
+30: Love
+31: Drake
 
-**Phoenix** - ID: 1
-**Tucson** - ID: 2  
-**Scottdale** - ID: 3
-**Chandler** - ID: 4
-**Brainburg** - ID: 5
-**Saint Rose** - ID: 6
-**Mesa** - ID: 7
-**Red-Rock** - ID: 8
-**Yuma** - ID: 9
-**Surprise** - ID: 10
-**Prescott** - ID: 11
-**Glendale** - ID: 12
-**Kingman** - ID: 13
-**Winslow** - ID: 14
-**Payson** - ID: 15
-**Gilbert** - ID: 16
-**Show Low** - ID: 17
-**Casa Grande** - ID: 18
-**Page** - ID: 19
-**Sun City** - ID: 20
-**Queen Creek** - ID: 21
-**Sedona** - ID: 22
-**Holiday** - ID: 23
-**Wednesday** - ID: 24
-**Yava** - ID: 25
-**Faraway** - ID: 26
-**Bumble Bee** - ID: 27
-**Christmas** - ID: 28
+**📱 Мобайл серверы:**
+101: Mobile 1
+102: Mobile 2
+103: Mobile 3
 """
         
         embed = {
-            'title': '🌵 Arizona RP - Серверы',
+            'title': 'Arizona RP - Серверы',
             'description': servers_info,
             'color': 0xff6600,
             'footer': {'text': 'Используйте /stats <ник> <ID сервера> для получения статистики'}
