@@ -240,28 +240,44 @@ class DiscordBot:
                     )
                     await ctx.send(embed=embed)
         
-        @self.bot.command(name="servers", help="Показать все серверы Arizona RP")
+        @self.bot.command(name="servers", help="Показать все серверы Arizona RP с актуальным статусом")
         async def discord_servers(ctx: commands.Context):
-            """Discord servers command"""
-            embed = discord.Embed(
-                title="🌐 Серверы Arizona RP:",
-                color=0x0099ff
+            """Discord servers command with status"""
+            # Отправляем сообщение о загрузке
+            loading_embed = discord.Embed(
+                title="🔄 Загрузка статуса серверов",
+                description="Получаю актуальную информацию о серверах Arizona RP...",
+                color=0xffaa00
             )
+            message = await ctx.send(embed=loading_embed)
             
-            # ПК серверы
-            pc_servers = " 1: Phoenix\n 2: Tucson\n 3: Scottdale\n 4: Chandler\n 5: Brainburg\n 6: Saint Rose\n 7: Mesa\n 8: Red Rock\n 9: Yuma\n10: Surprise\n11: Prescott\n12: Glendale\n13: Kingman\n14: Winslow\n15: Payson\n16: Gilbert\n17: Show Low\n18: Casa Grande\n19: Page\n20: Sun City\n21: Queen Creek\n22: Sedona\n23: Holiday\n24: Wednesday\n25: Yava\n26: Faraway\n27: Bumble Bee\n28: Christmas\n29: Mirage\n30: Love\n31: Drake"
-            embed.add_field(
-                name="💻 ПК серверы (1-31)",
-                value=pc_servers,
-                inline=False
-            )
-            
-            # Мобайл серверы
-            embed.add_field(
-                name="📱 Мобайл серверы",
-                value="101: Mobile 1\n102: Mobile 2\n103: Mobile 3",
-                inline=False
-            )
+            try:
+                # Получаем информацию о серверах со статусом
+                servers_info = await arizona_api.get_servers_info_with_status()
+                
+                # Создаем embed с актуальной информацией
+                embed = discord.Embed(
+                    title="🌐 Arizona RP Servers",
+                    description=servers_info,
+                    color=0x00ff00
+                )
+                embed.set_footer(text="Обновлено автоматически")
+                
+                # Обновляем сообщение
+                await message.edit(embed=embed)
+                
+            except Exception as e:
+                logger.error(f"Error fetching servers status for Discord: {e}")
+                # В случае ошибки показываем базовую информацию
+                fallback_info = arizona_api.get_servers_info()
+                
+                error_embed = discord.Embed(
+                    title="⚠️ Ошибка загрузки статуса",
+                    description=f"Не удалось получить актуальный статус серверов.\nПоказываю базовую информацию:\n\n{fallback_info}",
+                    color=0xff6600
+                )
+                
+                await message.edit(embed=error_embed)
             
             embed.add_field(
                 name="📝 Использование",

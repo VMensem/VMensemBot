@@ -151,56 +151,28 @@ class DiscordInteractionsHandler:
         return {'type': 4, 'data': {'embeds': [embed]}}
     
     async def cmd_servers(self) -> Dict[str, Any]:
-        """Команда серверов Arizona RP"""
+        """Команда серверов Arizona RP с статусом"""
         if not self.arizona_api:
             return self.error_response("Arizona RP API не настроен")
         
-        servers_info = """
-**💻 ПК серверы (1-31):**
- 1: Phoenix
- 2: Tucson
- 3: Scottdale
- 4: Chandler
- 5: Brainburg
- 6: Saint Rose
- 7: Mesa
- 8: Red Rock
- 9: Yuma
-10: Surprise
-11: Prescott
-12: Glendale
-13: Kingman
-14: Winslow
-15: Payson
-16: Gilbert
-17: Show Low
-18: Casa Grande
-19: Page
-20: Sun City
-21: Queen Creek
-22: Sedona
-23: Holiday
-24: Wednesday
-25: Yava
-26: Faraway
-27: Bumble Bee
-28: Christmas
-29: Mirage
-30: Love
-31: Drake
-
-**📱 Мобайл серверы:**
-101: Mobile 1
-102: Mobile 2
-103: Mobile 3
-"""
-        
-        embed = {
-            'title': '🌐 Серверы Arizona RP:',
-            'description': servers_info,
-            'color': 0xff6600,
-            'footer': {'text': 'Используйте /stats <ник> <ID сервера> для получения статистики'}
-        }
+        try:
+            # Получаем информацию о серверах со статусом
+            servers_info = await self.arizona_api.get_servers_info_with_status()
+            embed = {
+                'title': '🌐 Arizona RP Servers',
+                'description': servers_info,
+                'color': 0x00ff00,
+                'footer': {'text': 'Обновлено автоматически'}
+            }
+        except Exception as e:
+            logger.error(f"Error fetching servers status for Discord Interactions: {e}")
+            # В случае ошибки показываем базовую информацию
+            fallback_info = self.arizona_api.get_servers_info()
+            embed = {
+                'title': '⚠️ Ошибка загрузки статуса',
+                'description': f"Не удалось получить актуальный статус серверов.\nПоказываю базовую информацию:\n\n{fallback_info}",
+                'color': 0xff6600
+            }
         
         return {'type': 4, 'data': {'embeds': [embed]}}
     

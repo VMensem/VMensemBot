@@ -329,6 +329,157 @@ class ArizonaRPAPIClient:
             logger.error(f"Error formatting Arizona RP stats: {e}")
             return f"❌ Ошибка при форматировании информации для игрока {nickname}."
 
+    def get_server_name(self, server_id: int) -> str:
+        """Get server name by ID"""
+        server_names = {
+            # ПК серверы
+            1: "Phoenix", 2: "Tucson", 3: "Scottdale", 4: "Chandler", 5: "Brainburg",
+            6: "Saint Rose", 7: "Mesa", 8: "Red-Rock", 9: "Yuma", 10: "Surprise",
+            11: "Prescott", 12: "Glendale", 13: "Kingman", 14: "Winslow", 15: "Payson",
+            16: "Gilbert", 17: "Show Low", 18: "Casa-Grande", 19: "Page", 20: "Sun-City",
+            21: "Queen-Creek", 22: "Sedona", 23: "Holiday", 24: "Wednesday", 25: "Yava",
+            26: "Faraway", 27: "Bumble Bee", 28: "Christmas", 29: "Mirage", 30: "Love", 31: "Miracle",
+            # Мобайл серверы
+            101: "Mobile I", 102: "Mobile II", 103: "Mobile III"
+        }
+        return server_names.get(server_id, f"Server {server_id}")
+
+    async def fetch_server_status(self, server_id: int) -> Dict[str, Any]:
+        """
+        Fetch server status and online count
+        
+        Args:
+            server_id: Arizona RP server ID
+            
+        Returns:
+            Dict with server status information
+        """
+        try:
+            # Validate server ID
+            is_valid, error = self.validate_server_id(server_id)
+            if not is_valid:
+                return {
+                    "status": "error",
+                    "error": error,
+                    "online": 0,
+                    "is_online": False
+                }
+                
+            if not self.api_key:
+                return {
+                    "status": "no_api_key",
+                    "error": "API ключ не настроен",
+                    "online": 0,
+                    "is_online": False
+                }
+            
+            # Формируем запрос для получения информации о сервере
+            url = f"{self.api_url}/server/info"
+            params = {
+                "key": self.api_key,
+                "server": server_id
+            }
+            
+            timeout = aiohttp.ClientTimeout(total=self.timeout)
+            
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(url, params=params) as response:
+                    if response.status != 200:
+                        logger.error(f"Server info API error: HTTP {response.status}")
+                        return {
+                            "status": "api_error", 
+                            "error": f"HTTP {response.status}",
+                            "online": 0,
+                            "is_online": False
+                        }
+                    
+                    data = await response.json()
+                    
+                    # Проверяем статус ответа
+                    if data.get("status") != "ok":
+                        error_msg = data.get("error", "Неизвестная ошибка API")
+                        logger.error(f"Server info API returned error: {error_msg}")
+                        return {
+                            "status": "api_error",
+                            "error": error_msg,
+                            "online": 0,
+                            "is_online": False
+                        }
+                    
+                    # Извлекаем информацию о сервере
+                    server_info = data.get("server", {})
+                    online_count = server_info.get("online", 0)
+                    server_status = server_info.get("status", "offline")
+                    
+                    return {
+                        "status": "success",
+                        "online": int(online_count),
+                        "is_online": server_status == "online",
+                        "server_name": self.get_server_name(server_id),
+                        "server_id": server_id
+                    }
+                    
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout fetching server {server_id} status")
+            return {
+                "status": "timeout",
+                "error": "Превышено время ожидания",
+                "online": 0,
+                "is_online": False
+            }
+        except Exception as e:
+            logger.error(f"Error fetching server {server_id} status: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "online": 0,
+                "is_online": False
+            }
+
+    async def fetch_all_servers_status(self) -> Dict[int, Dict[str, Any]]:
+        """
+        Fetch status for all Arizona RP servers
+        
+        Returns:
+            Dict mapping server_id to status info
+        """
+        servers_info = {}
+        
+        # Создаем задачи для всех серверов
+        tasks = []
+        server_ids = []
+        
+        # ПК серверы 1-31
+        for server_id in range(1, 32):
+            tasks.append(self.fetch_server_status(server_id))
+            server_ids.append(server_id)
+        
+        # Мобайл серверы 101-103
+        for server_id in range(101, 104):
+            tasks.append(self.fetch_server_status(server_id))
+            server_ids.append(server_id)
+        
+        # Выполняем все запросы параллельно
+        try:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for server_id, result in zip(server_ids, results):
+                if isinstance(result, Exception):
+                    logger.error(f"Exception for server {server_id}: {result}")
+                    servers_info[server_id] = {
+                        "status": "error",
+                        "error": str(result),
+                        "online": 0,
+                        "is_online": False
+                    }
+                else:
+                    servers_info[server_id] = result
+                    
+        except Exception as e:
+            logger.error(f"Error fetching all servers status: {e}")
+            
+        return servers_info
+
     def get_servers_info(self) -> str:
         """Get information about all Arizona RP servers"""
         msg = "🌐 Серверы Arizona RP:\n\n💻 ПК серверы (1-31):\n"
@@ -341,6 +492,78 @@ class ArizonaRPAPIClient:
         msg += "Пример: /stats PlayerName 1"
         
         return msg
+
+    async def get_servers_info_with_status(self) -> str:
+        """Get information about all Arizona RP servers with status and online count"""
+        try:
+            # Получаем статус всех серверов
+            servers_status = await self.fetch_all_servers_status()
+            
+            msg = "🌐 **Серверы Arizona RP:**\n\n"
+            
+            # ПК серверы
+            msg += "💻 **ПК серверы (1-31):**\n"
+            total_online = 0
+            online_servers = 0
+            
+            for server_id in range(1, 32):
+                server_info = servers_status.get(server_id, {})
+                server_name = self.get_server_name(server_id)
+                online_count = server_info.get("online", 0)
+                is_online = server_info.get("is_online", False)
+                
+                # Эмодзи статуса
+                status_emoji = "🟢" if is_online else "🔴"
+                
+                # Форматирование строки сервера
+                if is_online:
+                    msg += f"{status_emoji} {server_id:2d}: {server_name} ({online_count} игроков)\n"
+                    total_online += online_count
+                    online_servers += 1
+                else:
+                    msg += f"{status_emoji} {server_id:2d}: {server_name} (офлайн)\n"
+            
+            # Мобайл серверы
+            msg += "\n📱 **Мобайл серверы:**\n"
+            mobile_online = 0
+            mobile_servers_online = 0
+            
+            for server_id in range(101, 104):
+                server_info = servers_status.get(server_id, {})
+                server_name = self.get_server_name(server_id)
+                online_count = server_info.get("online", 0)
+                is_online = server_info.get("is_online", False)
+                
+                # Эмодзи статуса
+                status_emoji = "🟢" if is_online else "🔴"
+                
+                # Форматирование строки сервера
+                if is_online:
+                    msg += f"{status_emoji} {server_id}: {server_name} ({online_count} игроков)\n"
+                    mobile_online += online_count
+                    mobile_servers_online += 1
+                else:
+                    msg += f"{status_emoji} {server_id}: {server_name} (офлайн)\n"
+            
+            # Статистика
+            total_players = total_online + mobile_online
+            total_servers_online = online_servers + mobile_servers_online
+            
+            msg += f"\n📊 **Статистика:**\n"
+            msg += f"🎮 Всего игроков онлайн: {total_players:,}\n"
+            msg += f"🖥️ ПК серверов онлайн: {online_servers}/31\n"
+            msg += f"📱 Мобайл серверов онлайн: {mobile_servers_online}/3\n"
+            msg += f"⚡ Всего серверов онлайн: {total_servers_online}/34\n\n"
+            
+            msg += "📝 Использование: /stats <ник> <ID сервера>\n"
+            msg += "💡 Пример: /stats PlayerName 1"
+            
+            return msg
+            
+        except Exception as e:
+            logger.error(f"Error getting servers info with status: {e}")
+            # Возвращаем базовую информацию в случае ошибки
+            return self.get_servers_info()
 
 # Global API client instance
 arizona_api = ArizonaRPAPIClient()

@@ -86,6 +86,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+### Server Status and Online Count Feature (August 9, 2025)
+- Enhanced /servers command to display real-time server status (🟢 online / 🔴 offline)
+- Added online player count for each server
+- Implemented parallel API requests for faster data loading
+- Added comprehensive server statistics (total players, online servers)
+- Includes loading messages with automatic updates
+- Fallback to basic server list if API unavailable
+
 ### Single Session and Auto-Restart System (August 9, 2025)
 - Implemented SessionManager to prevent multiple bot instances
 - Added RestartScheduler for automatic restart every 5 hours
