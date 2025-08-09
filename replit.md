@@ -86,6 +86,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+### Single Session and Auto-Restart System (August 9, 2025)
+- Implemented SessionManager to prevent multiple bot instances
+- Added RestartScheduler for automatic restart every 5 hours
+- Enhanced bot stability with proper session management
+- Added uptime monitoring and restart countdown in /botstats
+- Improved logging and error handling for autonomous operation
+
 ### Servers Command Update (August 9, 2025)
 - Updated /servers command across all platform implementations
 - Replaced simple server numbering with detailed server names (1: Phoenix, 2: Tucson, etc.)

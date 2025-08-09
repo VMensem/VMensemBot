@@ -36,6 +36,11 @@ class UnifiedBot:
         self.running = False
         self.restart_count = 0
         self.max_restarts = 100
+        self.scheduler = None  # Планировщик перезапуска
+        
+    def set_scheduler(self, scheduler):
+        """Установка планировщика перезапуска"""
+        self.scheduler = scheduler
         
     async def setup_telegram(self):
         """Setup Telegram bot"""
@@ -448,7 +453,16 @@ class UnifiedBot:
                 stats += " + Discord"
             
             stats += f"\n👥 Администраторов: {len(self.data_manager.get_admins())}\n"
-            stats += f"🚫 Запрещенных слов: {len(self.data_manager.get_banned_words())}"
+            stats += f"🚫 Запрещенных слов: {len(self.data_manager.get_banned_words())}\n\n"
+            
+            # Добавляем информацию о планировщике перезапуска
+            if self.scheduler:
+                stats += f"⏰ <b>Автоперезапуск:</b>\n"
+                stats += f"🕒 Время работы: {self.scheduler.get_uptime()}\n"
+                stats += f"⏱️ До перезапуска: {self.scheduler.get_time_until_restart()}\n"
+                stats += f"🔄 Интервал: 5 часов"
+            else:
+                stats += f"⏰ <b>Автоперезапуск:</b> Не настроен"
             
             await message.answer(stats, parse_mode="HTML")
 

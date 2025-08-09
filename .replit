@@ -21,12 +21,12 @@ args = "MensemBot"
 name = "MensemBot"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python bot.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [deployment]
 run = ["sh", "-c", "python bot.py"]
