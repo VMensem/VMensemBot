@@ -3,19 +3,22 @@ import logging
 from typing import Final, Optional
 
 # Telegram Bot Configuration
-BOT_TOKEN: Final = os.environ.get("BOT_TOKEN")
+_bot_token = os.environ.get("BOT_TOKEN")
+BOT_TOKEN: Final = _bot_token.strip() if _bot_token else None
 CREATOR_ID: Final = 1951437901
 CREATOR_USERNAME: Final = "@vladlotto"
 MANAGEMENT_CHAT_ID: Final = -1002473077041
 
 # Discord Bot Configuration  
-DISCORD_TOKEN: Final = os.getenv('DISCORD_TOKEN', '')
+_discord_token = os.getenv('DISCORD_TOKEN', '')
+DISCORD_TOKEN: Final = _discord_token.strip() if _discord_token else ''
 DISCORD_APPLICATION_ID: Final = os.getenv('DISCORD_APPLICATION_ID', '')
 DISCORD_PUBLIC_KEY: Final = os.getenv('DISCORD_PUBLIC_KEY', '')
 DISCORD_USE_INTERACTIONS: Final = os.getenv('DISCORD_USE_INTERACTIONS', 'true').lower() == 'true'
 
 # Arizona RP API Configuration
-API_KEY: Final = os.getenv('API_KEY', '')
+_api_key = os.getenv('API_KEY', '')
+API_KEY: Final = _api_key.strip() if _api_key else ''
 API_URL: Final = os.getenv('API_URL', 'https://api.depscian.tech/v2/player/find')
 
 # Bot Settings
