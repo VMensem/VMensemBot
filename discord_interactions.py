@@ -196,7 +196,7 @@ class DiscordInteractionsHandler:
 """
         
         embed = {
-            'title': 'Серверы Arizona RP:',
+            'title': '🌐 Серверы Arizona RP:',
             'description': servers_info,
             'color': 0xff6600,
             'footer': {'text': 'Используйте /stats <ник> <ID сервера> для получения статистики'}

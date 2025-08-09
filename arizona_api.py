@@ -331,7 +331,7 @@ class ArizonaRPAPIClient:
 
     def get_servers_info(self) -> str:
         """Get information about all Arizona RP servers"""
-        msg = "Серверы Arizona RP:\n\n💻 ПК серверы (1-31):\n"
+        msg = "🌐 Серверы Arizona RP:\n\n💻 ПК серверы (1-31):\n"
         msg += " 1: Phoenix\n 2: Tucson\n 3: Scottdale\n 4: Chandler\n 5: Brainburg\n 6: Saint Rose\n 7: Mesa\n 8: Red Rock\n 9: Yuma\n10: Surprise\n11: Prescott\n12: Glendale\n13: Kingman\n14: Winslow\n15: Payson\n16: Gilbert\n17: Show Low\n18: Casa Grande\n19: Page\n20: Sun City\n21: Queen Creek\n22: Sedona\n23: Holiday\n24: Wednesday\n25: Yava\n26: Faraway\n27: Bumble Bee\n28: Christmas\n29: Mirage\n30: Love\n31: Drake\n\n"
         
         msg += "📱 Мобайл серверы:\n"
