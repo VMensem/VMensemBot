@@ -86,6 +86,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+### Servers Command Update (August 9, 2025)
+- Updated /servers command across all platform implementations
+- Replaced simple server numbering with detailed server names (1: Phoenix, 2: Tucson, etc.)
+- Added 🌐 emoji to "Серверы Arizona RP:" header for visual consistency
+- Fixed token validation to strip whitespace from environment variables
+- Improved error handling for invalid tokens containing spaces
+
+## Previous Changes
+
 ### Rank Application System (August 7, 2025)
 - Fixed /shop functionality - now processes rank applications instead of shop requests
 - Added inline keyboard buttons (Выдано/Отказано) for family leadership
