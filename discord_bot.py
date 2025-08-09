@@ -244,7 +244,7 @@ class DiscordBot:
         async def discord_servers(ctx: commands.Context):
             """Discord servers command"""
             embed = discord.Embed(
-                title="Серверы Arizona RP",
+                title="Серверы Arizona RP:",
                 color=0x0099ff
             )
             
