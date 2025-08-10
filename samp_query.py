@@ -163,62 +163,116 @@ class SAMPQueryClient:
     async def query_server_async(self, ip: str, port: int) -> ServerInfo:
         """Async wrapper for server query"""
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, lambda: asyncio.run(self.query_server(ip, port)))
+        return await loop.run_in_executor(None, self._query_server_sync, ip, port)
+        
+    def _query_server_sync(self, ip: str, port: int) -> ServerInfo:
+        """Synchronous server query for executor"""
+        try:
+            # Create query packet for server info
+            packet = self._create_query_packet(ip, port, self.OPCODE_SERVER_INFO)
+            
+            # Create UDP socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.settimeout(self.timeout)
+            
+            try:
+                # Send query
+                sock.sendto(packet, (ip, port))
+                
+                # Receive response
+                response_data, addr = sock.recvfrom(4096)
+                
+                # Parse response
+                server_info = self._parse_server_info_response(response_data)
+                
+                return server_info
+                
+            finally:
+                sock.close()
+                
+        except socket.timeout:
+            return ServerInfo(False, 0, 0, error="Connection timeout")
+        except socket.gaierror as e:
+            return ServerInfo(False, 0, 0, error=f"DNS error: {str(e)}")
+        except Exception as e:
+            return ServerInfo(False, 0, 0, error=f"Query error: {str(e)}")
 
 # Arizona RP Servers List
 ARIZONA_SERVERS = [
-    {"id": 1, "name": "Phoenix", "ip": "176.57.147.190", "port": 7777},
-    {"id": 2, "name": "Tucson", "ip": "176.57.147.191", "port": 7777},
-    {"id": 3, "name": "Scottdale", "ip": "176.57.147.192", "port": 7777},
-    {"id": 4, "name": "Chandler", "ip": "176.57.147.193", "port": 7777},
-    {"id": 5, "name": "Brainburg", "ip": "176.57.147.194", "port": 7777},
-    {"id": 6, "name": "Saint-Rose", "ip": "176.57.147.195", "port": 7777},
-    {"id": 7, "name": "Mesa", "ip": "176.57.147.196", "port": 7777},
-    {"id": 8, "name": "Red-Rock", "ip": "176.57.147.197", "port": 7777},
-    {"id": 9, "name": "Yuma", "ip": "176.57.147.198", "port": 7777},
-    {"id": 10, "name": "Surprise", "ip": "176.57.147.199", "port": 7777},
-    {"id": 11, "name": "Prescott", "ip": "176.57.147.200", "port": 7777},
-    {"id": 12, "name": "Glendale", "ip": "176.57.147.201", "port": 7777},
-    {"id": 13, "name": "Kingman", "ip": "176.57.147.202", "port": 7777},
-    {"id": 14, "name": "Winslow", "ip": "176.57.147.203", "port": 7777},
-    {"id": 15, "name": "Payson", "ip": "176.57.147.204", "port": 7777},
-    {"id": 16, "name": "Gilbert", "ip": "176.57.147.205", "port": 7777},
-    {"id": 17, "name": "Show Low", "ip": "176.57.147.206", "port": 7777},
-    {"id": 18, "name": "Casa-Grande", "ip": "176.57.147.207", "port": 7777},
-    {"id": 19, "name": "Page", "ip": "176.57.147.208", "port": 7777},
-    {"id": 20, "name": "Sun-City", "ip": "176.57.147.209", "port": 7777},
-    {"id": 21, "name": "Queen-Creek", "ip": "176.57.147.210", "port": 7777},
-    {"id": 22, "name": "Sedona", "ip": "176.57.147.211", "port": 7777},
-    {"id": 23, "name": "Holiday", "ip": "176.57.147.212", "port": 7777},
-    {"id": 24, "name": "Wednesday", "ip": "176.57.147.213", "port": 7777},
-    {"id": 25, "name": "Yava", "ip": "176.57.147.214", "port": 7777},
-    {"id": 26, "name": "Faraway", "ip": "176.57.147.215", "port": 7777},
-    {"id": 27, "name": "Bumble Bee", "ip": "176.57.147.216", "port": 7777},
-    {"id": 28, "name": "Christmas", "ip": "176.57.147.217", "port": 7777},
-    {"id": 29, "name": "Mirage", "ip": "176.57.147.218", "port": 7777},
-    {"id": 30, "name": "Love", "ip": "176.57.147.219", "port": 7777},
-    {"id": 31, "name": "Drake", "ip": "176.57.147.220", "port": 7777},
+    {"id": 1, "name": "Phoenix", "ip": "176.57.147.190", "port": 7777, "max_players": 1000},
+    {"id": 2, "name": "Tucson", "ip": "176.57.147.191", "port": 7777, "max_players": 1000},
+    {"id": 3, "name": "Scottdale", "ip": "176.57.147.192", "port": 7777, "max_players": 1000},
+    {"id": 4, "name": "Chandler", "ip": "176.57.147.193", "port": 7777, "max_players": 1000},
+    {"id": 5, "name": "Brainburg", "ip": "176.57.147.194", "port": 7777, "max_players": 1000},
+    {"id": 6, "name": "Saint-Rose", "ip": "176.57.147.195", "port": 7777, "max_players": 1000},
+    {"id": 7, "name": "Mesa", "ip": "176.57.147.196", "port": 7777, "max_players": 1000},
+    {"id": 8, "name": "Red-Rock", "ip": "176.57.147.197", "port": 7777, "max_players": 1000},
+    {"id": 9, "name": "Yuma", "ip": "176.57.147.198", "port": 7777, "max_players": 1000},
+    {"id": 10, "name": "Surprise", "ip": "176.57.147.199", "port": 7777, "max_players": 1000},
+    {"id": 11, "name": "Prescott", "ip": "176.57.147.200", "port": 7777, "max_players": 1000},
+    {"id": 12, "name": "Glendale", "ip": "176.57.147.201", "port": 7777, "max_players": 1000},
+    {"id": 13, "name": "Kingman", "ip": "176.57.147.202", "port": 7777, "max_players": 1000},
+    {"id": 14, "name": "Winslow", "ip": "176.57.147.203", "port": 7777, "max_players": 1000},
+    {"id": 15, "name": "Payson", "ip": "176.57.147.204", "port": 7777, "max_players": 1000},
+    {"id": 16, "name": "Gilbert", "ip": "176.57.147.205", "port": 7777, "max_players": 1000},
+    {"id": 17, "name": "Show Low", "ip": "176.57.147.206", "port": 7777, "max_players": 1000},
+    {"id": 18, "name": "Casa-Grande", "ip": "176.57.147.207", "port": 7777, "max_players": 1000},
+    {"id": 19, "name": "Page", "ip": "176.57.147.208", "port": 7777, "max_players": 1000},
+    {"id": 20, "name": "Sun-City", "ip": "176.57.147.209", "port": 7777, "max_players": 1000},
+    {"id": 21, "name": "Queen-Creek", "ip": "176.57.147.210", "port": 7777, "max_players": 1000},
+    {"id": 22, "name": "Sedona", "ip": "176.57.147.211", "port": 7777, "max_players": 1000},
+    {"id": 23, "name": "Holiday", "ip": "176.57.147.212", "port": 7777, "max_players": 1000},
+    {"id": 24, "name": "Wednesday", "ip": "176.57.147.213", "port": 7777, "max_players": 1000},
+    {"id": 25, "name": "Yava", "ip": "176.57.147.214", "port": 7777, "max_players": 1000},
+    {"id": 26, "name": "Faraway", "ip": "176.57.147.215", "port": 7777, "max_players": 1000},
+    {"id": 27, "name": "Bumble Bee", "ip": "176.57.147.216", "port": 7777, "max_players": 1000},
+    {"id": 28, "name": "Christmas", "ip": "176.57.147.217", "port": 7777, "max_players": 1000},
+    {"id": 29, "name": "Mirage", "ip": "176.57.147.218", "port": 7777, "max_players": 1000},
+    {"id": 30, "name": "Love", "ip": "176.57.147.219", "port": 7777, "max_players": 1000},
+    {"id": 31, "name": "Drake", "ip": "176.57.147.220", "port": 7777, "max_players": 1000},
+    
+    {"id": 101, "name": "Mobile I", "ip": "176.57.147.221", "port": 7777, "max_players": 1000},
+    {"id": 102, "name": "Mobile II", "ip": "176.57.147.222", "port": 7777, "max_players": 1000},
+    {"id": 103, "name": "Mobile III", "ip": "176.57.147.223", "port": 7777, "max_players": 1000},
+    
+    {"id": 1000, "name": "Vice City", "ip": "176.57.147.224", "port": 7777, "max_players": 750},
 ]
 
 async def query_all_servers() -> Dict[int, ServerInfo]:
     """Query all Arizona RP servers and return results"""
-    client = SAMPQueryClient(timeout=2.0)
+    client = SAMPQueryClient(timeout=1.5)  # Уменьшен таймаут для скорости
     results = {}
     
-    # Create tasks for all servers
+    # Create async tasks for all servers using asyncio.to_thread
     tasks = []
     for server in ARIZONA_SERVERS:
-        task = client.query_server(server["ip"], server["port"])
+        task = asyncio.create_task(
+            asyncio.to_thread(client._query_server_sync, server["ip"], server["port"])
+        )
         tasks.append((server["id"], task))
     
-    # Execute all queries concurrently
-    for server_id, task in tasks:
-        try:
-            result = await task
-            results[server_id] = result
-        except Exception as e:
-            logger.error(f"Failed to query server {server_id}: {e}")
-            results[server_id] = ServerInfo(False, 0, 0, error=str(e))
+    # Execute all queries concurrently with timeout
+    try:
+        # Wait for all tasks with 10 second total timeout
+        completed_tasks = await asyncio.wait_for(
+            asyncio.gather(*[task for _, task in tasks], return_exceptions=True),
+            timeout=10.0
+        )
+        
+        # Process results
+        for (server_id, _), result in zip(tasks, completed_tasks):
+            if isinstance(result, Exception):
+                logger.error(f"Failed to query server {server_id}: {result}")
+                results[server_id] = ServerInfo(False, 0, 0, error=str(result))
+            else:
+                results[server_id] = result
+                
+    except asyncio.TimeoutError:
+        logger.error("Global timeout exceeded while querying servers")
+        # Fill remaining results with timeout errors
+        for server_id, task in tasks:
+            if server_id not in results:
+                results[server_id] = ServerInfo(False, 0, 0, error="Global timeout")
     
     return results
 
@@ -233,15 +287,18 @@ def format_servers_status(server_results: Dict[int, ServerInfo]) -> str:
     for server in ARIZONA_SERVERS:
         server_id = server["id"]
         server_name = server["name"]
+        max_players = server["max_players"]
         info = server_results.get(server_id, ServerInfo(False, 0, 0, error="No data"))
         
-        if info.is_online:
-            msg += f"✅ {server_id}. {server_name} | Онлайн: {info.players} / {info.max_players}\n"
+        if info.is_online and info.players >= 0:
+            # Используем реальный max_players из ответа сервера, если он больше 0
+            actual_max = info.max_players if info.max_players > 0 else max_players
+            msg += f"✅ {server_id}. {server_name} | Онлайн: {info.players} / {actual_max}\n"
             total_online += info.players
             online_count += 1
         else:
-            error_msg = info.error if info.error else "Сервер недоступен"
-            msg += f"❌ {server_id}. {server_name} | {error_msg}\n"
+            # Простое сообщение о недоступности
+            msg += f"❌ {server_id}. {server_name} | Connection timeout\n"
     
     msg += f"\n📊 **Общая статистика:**\n"
     msg += f"🎮 Всего игроков онлайн: **{total_online:,}**\n"
