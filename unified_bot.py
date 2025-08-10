@@ -36,11 +36,6 @@ class UnifiedBot:
         self.running = False
         self.restart_count = 0
         self.max_restarts = 100
-        self.scheduler = None  # Планировщик перезапуска
-        
-    def set_scheduler(self, scheduler):
-        """Установка планировщика перезапуска"""
-        self.scheduler = scheduler
         
     async def setup_telegram(self):
         """Setup Telegram bot"""
