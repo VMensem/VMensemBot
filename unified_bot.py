@@ -370,15 +370,32 @@ class UnifiedBot:
             try:
                 # Получаем актуальную информацию о серверах
                 servers_info = await arizona_api.get_servers_status_from_api()
-                await loading_msg.edit_text(servers_info, parse_mode="Markdown")
+                
+                # Создаем inline кнопку для обновления
+                refresh_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_servers")]
+                ])
+                
+                await loading_msg.edit_text(
+                    servers_info, 
+                    parse_mode="Markdown",
+                    reply_markup=refresh_keyboard
+                )
                 
             except Exception as e:
                 logger.error(f"Error in servers command: {e}")
                 # В случае ошибки показываем базовую информацию
                 fallback_info = arizona_api.get_servers_info()
+                
+                # Кнопка обновления даже при ошибке
+                refresh_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_servers")]
+                ])
+                
                 await loading_msg.edit_text(
                     f"⚠️ Не удалось получить актуальный статус серверов.\n"
-                    f"Показываю базовую информацию:\n\n{fallback_info}"
+                    f"Показываю базовую информацию:\n\n{fallback_info}",
+                    reply_markup=refresh_keyboard
                 )
         
         # Admin commands for banned words
@@ -519,6 +536,43 @@ class UnifiedBot:
                             # Can't delete message (not enough permissions)
                             await message.answer("⚠️ Ваше сообщение содержит запрещенные слова.")
                         break
+
+        # Callback query handler for refresh servers button
+        @self.dp.callback_query(F.data == "refresh_servers")
+        async def refresh_servers_callback(callback: CallbackQuery):
+            # Показываем пользователю, что идет загрузка
+            await callback.answer("🔄 Обновляю статус серверов...", show_alert=False)
+            
+            try:
+                # Получаем актуальную информацию о серверах
+                servers_info = await arizona_api.get_servers_status_from_api()
+                
+                # Создаем кнопку обновления снова
+                refresh_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_servers")]
+                ])
+                
+                # Обновляем сообщение с новой информацией
+                await callback.message.edit_text(
+                    servers_info,
+                    parse_mode="Markdown",
+                    reply_markup=refresh_keyboard
+                )
+                
+            except Exception as e:
+                logger.error(f"Error refreshing servers: {e}")
+                # В случае ошибки показываем базовую информацию
+                fallback_info = arizona_api.get_servers_info()
+                
+                refresh_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_servers")]
+                ])
+                
+                await callback.message.edit_text(
+                    f"⚠️ Не удалось получить актуальный статус серверов.\n"
+                    f"Показываю базовую информацию:\n\n{fallback_info}",
+                    reply_markup=refresh_keyboard
+                )
 
         # Callback query handler for rank application buttons
         @self.dp.callback_query(F.data.startswith("rank_"))

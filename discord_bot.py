@@ -242,7 +242,7 @@ class DiscordBot:
         
         @self.bot.command(name="servers", help="Показать все серверы Arizona RP с актуальным статусом")
         async def discord_servers(ctx: commands.Context):
-            """Discord servers command with real-time status"""
+            """Discord servers command with real-time status and refresh button"""
             # Отправляем сообщение о загрузке
             loading_embed = discord.Embed(
                 title="🔄 Загрузка статуса серверов",
@@ -250,6 +250,44 @@ class DiscordBot:
                 color=0xffaa00
             )
             message = await ctx.send(embed=loading_embed)
+            
+            # Создаем View с кнопкой обновления
+            class RefreshServersView(discord.ui.View):
+                def __init__(self):
+                    super().__init__(timeout=300)  # 5 минут таймаут
+                
+                @discord.ui.button(label='🔄 Обновить', style=discord.ButtonStyle.primary)
+                async def refresh_servers(self, interaction: discord.Interaction, button: discord.ui.Button):
+                    # Отвечаем на взаимодействие
+                    await interaction.response.defer()
+                    
+                    try:
+                        # Получаем актуальную информацию о серверах
+                        servers_info = await arizona_api.get_servers_status_from_api()
+                        
+                        # Создаем embed с актуальной информацией
+                        embed = discord.Embed(
+                            title="🌐 Arizona RP Servers",
+                            description=servers_info,
+                            color=0x00ff00
+                        )
+                        embed.set_footer(text="Обновлено вручную")
+                        
+                        # Обновляем сообщение с новой кнопкой
+                        await interaction.edit_original_response(embed=embed, view=RefreshServersView())
+                        
+                    except Exception as e:
+                        logger.error(f"Error refreshing servers status for Discord: {e}")
+                        # В случае ошибки показываем базовую информацию
+                        fallback_info = arizona_api.get_servers_info()
+                        
+                        error_embed = discord.Embed(
+                            title="⚠️ Ошибка загрузки статуса",
+                            description=f"Не удалось получить актуальный статус серверов.\nПоказываю базовую информацию:\n\n{fallback_info}",
+                            color=0xff6600
+                        )
+                        
+                        await interaction.edit_original_response(embed=error_embed, view=RefreshServersView())
             
             try:
                 # Получаем актуальную информацию о серверах
@@ -261,10 +299,10 @@ class DiscordBot:
                     description=servers_info,
                     color=0x00ff00
                 )
-                embed.set_footer(text="Обновлено автоматически")
+                embed.set_footer(text="Обновлено автоматически • Используйте кнопку для обновления")
                 
-                # Обновляем сообщение
-                await message.edit(embed=embed)
+                # Обновляем сообщение с кнопкой
+                await message.edit(embed=embed, view=RefreshServersView())
                 
             except Exception as e:
                 logger.error(f"Error fetching servers status for Discord: {e}")
@@ -277,7 +315,7 @@ class DiscordBot:
                     color=0xff6600
                 )
                 
-                await message.edit(embed=error_embed)
+                await message.edit(embed=error_embed, view=RefreshServersView())
     
     async def start(self):
         """Start Discord bot"""
