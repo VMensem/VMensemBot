@@ -561,106 +561,64 @@ class ArizonaRPAPIClient:
         return msg
 
     async def get_servers_info_with_status(self) -> str:
-        """Get information about all Arizona RP servers with status and online count"""
+        """Get information about all Arizona RP servers with direct SAMP query"""
         try:
-            # Получаем статус всех серверов
-            servers_status = await self.fetch_all_servers_status()
+            # Импортируем SAMP Query клиент
+            from samp_query import query_all_servers, format_servers_status
             
-            # Проверяем качество данных
-            total_servers = len(servers_status)
-            successful_requests = sum(1 for s in servers_status.values() if s.get("status") == "success")
-            api_errors = sum(1 for s in servers_status.values() if s.get("status") in ["rate_limit", "unauthorized", "forbidden"])
+            logger.info("Выполняем прямые UDP запросы к серверам Arizona RP...")
             
-            msg = "🌐 **Серверы Arizona RP**\n\n"
-            msg += "📝 **Доступность серверов:**\n\n"
+            # Выполняем прямые запросы к серверам
+            server_results = await query_all_servers()
             
-            # Если много ошибок API, показываем предупреждение
-            if api_errors > total_servers * 0.3:  # Больше 30% ошибок
-                msg += f"⚠️ Данные ограничены (успешно: {successful_requests}/{total_servers})\n\n"
+            # Форматируем результат
+            formatted_result = format_servers_status(server_results)
             
-            total_online = 0
-            online_servers = 0
-            unavailable_count = 0
+            logger.info(f"Завершены запросы к {len(server_results)} серверам")
             
-            # ПК серверы (1-31)
-            for server_id in range(1, 32):
-                server_info = servers_status.get(server_id, {})
-                server_name = self.get_server_name(server_id)
-                online_count = server_info.get("online", 0)
-                is_online = server_info.get("is_online", False)
-                status = server_info.get("status", "unknown")
-                
-                # Максимальные слоты для ПК серверов (обычно 1000)
-                max_slots = 1000
-                
-                if status == "success" and is_online:
-                    msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count} / {max_slots}\n"
-                    total_online += online_count
-                    online_servers += 1
-                elif status == "success" and not is_online:
-                    msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
-                elif status in ["rate_limit", "unauthorized", "forbidden"]:
-                    msg += f"🟡 {server_id}. {server_name} | Данные недоступны\n"
-                    unavailable_count += 1
-                else:
-                    msg += f"⚫ {server_id}. {server_name} | Ошибка загрузки\n"
-            
-            # Мобайл серверы (101-103)
-            mobile_online = 0
-            mobile_servers_online = 0
-            mobile_unavailable = 0
-            
-            for server_id in range(101, 104):
-                server_info = servers_status.get(server_id, {})
-                server_name = self.get_server_name(server_id)
-                online_count = server_info.get("online", 0)
-                is_online = server_info.get("is_online", False)
-                status = server_info.get("status", "unknown")
-                
-                # Максимальные слоты для мобайл серверов (обычно 750-1000)
-                max_slots = 750
-                
-                if status == "success" and is_online:
-                    msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count} / {max_slots}\n"
-                    mobile_online += online_count
-                    mobile_servers_online += 1
-                elif status == "success" and not is_online:
-                    msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
-                elif status in ["rate_limit", "unauthorized", "forbidden"]:
-                    msg += f"🟡 {server_id}. {server_name} | Данные недоступны\n"
-                    mobile_unavailable += 1
-                else:
-                    msg += f"⚫ {server_id}. {server_name} | Ошибка загрузки\n"
-            
-            # Итоговая статистика
-            total_players = total_online + mobile_online
-            total_servers_online = online_servers + mobile_servers_online
-            total_unavailable = unavailable_count + mobile_unavailable
-            
-            msg += f"\n📊 **Общая статистика:**\n"
-            
-            if successful_requests > 0:
-                msg += f"🎮 Всего игроков онлайн: **{total_players:,}**\n"
-                msg += f"⚡ Серверов онлайн: **{total_servers_online}/34**\n"
-                msg += f"🖥️ ПК серверов: {online_servers}/31\n"
-                msg += f"📱 Мобайл серверов: {mobile_servers_online}/3\n"
-                
-                if total_unavailable > 0:
-                    msg += f"🟡 Недоступно: {total_unavailable} серверов\n"
-            else:
-                msg += f"⚠️ Данные временно недоступны\n"
-                msg += f"🔄 Попробуйте позже\n"
-            
-            msg += f"\n📝 Статистика игрока: /stats <ник> <ID сервера>\n"
-            msg += f"💡 Пример: /stats PlayerName 1"
-            
-            return msg
+            return formatted_result
             
         except Exception as e:
-            logger.error(f"Error getting servers info with status: {e}")
-            # Возвращаем базовую информацию в случае ошибки
-            fallback = self.get_servers_info()
-            return f"⚠️ **Статус серверов временно недоступен**\n\n{fallback}\n\n💡 Данные обновляются автоматически"
+            logger.error(f"Error getting servers info with direct query: {e}")
+            # Fallback на API метод
+            try:
+                logger.info("Fallback на API метод...")
+                servers_status = await self.fetch_all_servers_status()
+                
+                msg = "🌐 **Серверы Arizona RP** (через API)\n\n"
+                msg += "📝 **Доступность серверов:**\n\n"
+                
+                total_online = 0
+                online_servers = 0
+                
+                # ПК серверы (1-31)
+                for server_id in range(1, 32):
+                    server_info = servers_status.get(server_id, {})
+                    server_name = self.get_server_name(server_id)
+                    online_count = server_info.get("online", 0)
+                    is_online = server_info.get("is_online", False)
+                    status = server_info.get("status", "unknown")
+                    
+                    if status == "success" and is_online:
+                        msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count} / 1000\n"
+                        total_online += online_count
+                        online_servers += 1
+                    elif status == "success" and not is_online:
+                        msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
+                    else:
+                        msg += f"🟡 {server_id}. {server_name} | Данные недоступны\n"
+                
+                msg += f"\n📊 **Общая статистика:**\n"
+                msg += f"🎮 Всего игроков онлайн: **{total_online:,}**\n"
+                msg += f"⚡ Серверов онлайн: **{online_servers}/31**\n"
+                msg += f"\n📝 Статистика игрока: /stats <ник> <ID сервера>\n"
+                msg += f"💡 Пример: /stats PlayerName 1"
+                
+                return msg
+                
+            except Exception as fallback_error:
+                logger.error(f"Fallback API method also failed: {fallback_error}")
+                return "⚠️ **Серверы временно недоступны**\n\nПопробуйте позже или обратитесь к администратору"
 
 # Global API client instance
 arizona_api = ArizonaRPAPIClient()
