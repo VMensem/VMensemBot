@@ -571,19 +571,18 @@ class ArizonaRPAPIClient:
             successful_requests = sum(1 for s in servers_status.values() if s.get("status") == "success")
             api_errors = sum(1 for s in servers_status.values() if s.get("status") in ["rate_limit", "unauthorized", "forbidden"])
             
-            msg = "🌐 **Серверы Arizona RP:**\n\n"
+            msg = "🌐 **Серверы Arizona RP**\n\n"
+            msg += "📝 **Доступность серверов:**\n\n"
             
             # Если много ошибок API, показываем предупреждение
-            if api_errors > total_servers * 0.5:  # Больше 50% ошибок
-                msg += "⚠️ **Предупреждение:** Ограниченные данные из-за лимитов API\n"
-                msg += f"📊 Успешных запросов: {successful_requests}/{total_servers}\n\n"
+            if api_errors > total_servers * 0.3:  # Больше 30% ошибок
+                msg += f"⚠️ Данные ограничены (успешно: {successful_requests}/{total_servers})\n\n"
             
-            # ПК серверы
-            msg += "💻 **ПК серверы (1-31):**\n"
             total_online = 0
             online_servers = 0
             unavailable_count = 0
             
+            # ПК серверы (1-31)
             for server_id in range(1, 32):
                 server_info = servers_status.get(server_id, {})
                 server_name = self.get_server_name(server_id)
@@ -591,26 +590,22 @@ class ArizonaRPAPIClient:
                 is_online = server_info.get("is_online", False)
                 status = server_info.get("status", "unknown")
                 
-                # Определяем эмодзи и статус
-                if status == "success":
-                    if is_online:
-                        status_emoji = "🟢"
-                        msg += f"{status_emoji} {server_id:2d}: {server_name} ({online_count} игроков)\n"
-                        total_online += online_count
-                        online_servers += 1
-                    else:
-                        status_emoji = "🔴"
-                        msg += f"{status_emoji} {server_id:2d}: {server_name} (офлайн)\n"
+                # Максимальные слоты для ПК серверов (обычно 1000)
+                max_slots = 1000
+                
+                if status == "success" and is_online:
+                    msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count} / {max_slots}\n"
+                    total_online += online_count
+                    online_servers += 1
+                elif status == "success" and not is_online:
+                    msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
                 elif status in ["rate_limit", "unauthorized", "forbidden"]:
-                    status_emoji = "🟡"
-                    msg += f"{status_emoji} {server_id:2d}: {server_name} (данные недоступны)\n"
+                    msg += f"🟡 {server_id}. {server_name} | Данные недоступны\n"
                     unavailable_count += 1
                 else:
-                    status_emoji = "⚫"
-                    msg += f"{status_emoji} {server_id:2d}: {server_name} (ошибка)\n"
+                    msg += f"⚫ {server_id}. {server_name} | Ошибка загрузки\n"
             
-            # Мобайл серверы
-            msg += "\n📱 **Мобайл серверы:**\n"
+            # Мобайл серверы (101-103)
             mobile_online = 0
             mobile_servers_online = 0
             mobile_unavailable = 0
@@ -622,50 +617,42 @@ class ArizonaRPAPIClient:
                 is_online = server_info.get("is_online", False)
                 status = server_info.get("status", "unknown")
                 
-                # Определяем эмодзи и статус
-                if status == "success":
-                    if is_online:
-                        status_emoji = "🟢"
-                        msg += f"{status_emoji} {server_id}: {server_name} ({online_count} игроков)\n"
-                        mobile_online += online_count
-                        mobile_servers_online += 1
-                    else:
-                        status_emoji = "🔴"
-                        msg += f"{status_emoji} {server_id}: {server_name} (офлайн)\n"
+                # Максимальные слоты для мобайл серверов (обычно 750-1000)
+                max_slots = 750
+                
+                if status == "success" and is_online:
+                    msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count} / {max_slots}\n"
+                    mobile_online += online_count
+                    mobile_servers_online += 1
+                elif status == "success" and not is_online:
+                    msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
                 elif status in ["rate_limit", "unauthorized", "forbidden"]:
-                    status_emoji = "🟡"
-                    msg += f"{status_emoji} {server_id}: {server_name} (данные недоступны)\n"
+                    msg += f"🟡 {server_id}. {server_name} | Данные недоступны\n"
                     mobile_unavailable += 1
                 else:
-                    status_emoji = "⚫"
-                    msg += f"{status_emoji} {server_id}: {server_name} (ошибка)\n"
+                    msg += f"⚫ {server_id}. {server_name} | Ошибка загрузки\n"
             
-            # Статистика
+            # Итоговая статистика
             total_players = total_online + mobile_online
             total_servers_online = online_servers + mobile_servers_online
             total_unavailable = unavailable_count + mobile_unavailable
             
-            msg += f"\n📊 **Статистика:**\n"
+            msg += f"\n📊 **Общая статистика:**\n"
             
             if successful_requests > 0:
-                msg += f"🎮 Игроков онлайн: {total_players:,}\n"
-                msg += f"🖥️ ПК серверов онлайн: {online_servers}/31\n"
-                msg += f"📱 Мобайл серверов онлайн: {mobile_servers_online}/3\n"
-                msg += f"⚡ Всего серверов онлайн: {total_servers_online}/34\n"
+                msg += f"🎮 Всего игроков онлайн: **{total_players:,}**\n"
+                msg += f"⚡ Серверов онлайн: **{total_servers_online}/34**\n"
+                msg += f"🖥️ ПК серверов: {online_servers}/31\n"
+                msg += f"📱 Мобайл серверов: {mobile_servers_online}/3\n"
                 
                 if total_unavailable > 0:
-                    msg += f"🟡 Недоступно данных: {total_unavailable} серверов\n"
+                    msg += f"🟡 Недоступно: {total_unavailable} серверов\n"
             else:
-                msg += f"⚠️ Данные о серверах временно недоступны\n"
-                msg += f"🔄 Попробуйте позже или обратитесь к администратору\n"
+                msg += f"⚠️ Данные временно недоступны\n"
+                msg += f"🔄 Попробуйте позже\n"
             
-            msg += f"\n📝 Использование: /stats <ник> <ID сервера>\n"
-            msg += f"💡 Пример: /stats PlayerName 1\n\n"
-            
-            # Легенда статусов если есть недоступные данные
-            if total_unavailable > 0:
-                msg += "**Статусы:**\n"
-                msg += "🟢 Онлайн | 🔴 Офлайн | 🟡 Данные недоступны"
+            msg += f"\n📝 Статистика игрока: /stats <ник> <ID сервера>\n"
+            msg += f"💡 Пример: /stats PlayerName 1"
             
             return msg
             
