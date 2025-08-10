@@ -559,6 +559,78 @@ class ArizonaRPAPIClient:
         msg += "Пример: /stats PlayerName 1"
         
         return msg
+    
+    async def get_servers_status_from_api(self) -> str:
+        """Get real-time servers status from Arizona RP API"""
+        try:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get("https://api.depscian.tech/v2/status", 
+                                     headers={"X-API-Key": "eybfxnIFZJ5ZciisrE14hiOW5dVMjGLb"}) as response:
+                    
+                    if response.status != 200:
+                        logger.error(f"API status request failed: {response.status}")
+                        return self.get_servers_info()  # Fallback to static list
+                    
+                    data = await response.json()
+                    arizona_servers = data.get("arizona", [])
+                    
+                    if not arizona_servers:
+                        return self.get_servers_info()  # Fallback to static list
+                    
+                    # Сортируем серверы по номеру
+                    arizona_servers.sort(key=lambda x: x.get("number", 0))
+                    
+                    msg = "🌐 **Серверы Arizona RP** (Онлайн)\n\n"
+                    msg += "📊 **Актуальный статус серверов:**\n\n"
+                    
+                    total_online = 0
+                    online_servers = 0
+                    
+                    # ПК серверы (1-31)
+                    pc_servers = [s for s in arizona_servers if 1 <= s.get("number", 0) <= 31]
+                    for server in pc_servers:
+                        server_id = server.get("number", 0)
+                        server_name = server.get("name", f"Server {server_id}")
+                        online_count = server.get("online", 0)
+                        max_players = server.get("maxplayers", 1000)
+                        status = server.get("status", "offline")
+                        
+                        if status == "online":
+                            msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count:,} / {max_players:,}\n"
+                            total_online += online_count
+                            online_servers += 1
+                        else:
+                            msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
+                    
+                    # Мобайл серверы (101-103)
+                    msg += f"\n📱 **Мобайл серверы:**\n"
+                    mobile_servers = [s for s in arizona_servers if 101 <= s.get("number", 0) <= 103]
+                    for server in mobile_servers:
+                        server_id = server.get("number", 0)
+                        server_name = server.get("name", f"Mobile {server_id}")
+                        online_count = server.get("online", 0)
+                        max_players = server.get("maxplayers", 1000)
+                        status = server.get("status", "offline")
+                        
+                        if status == "online":
+                            msg += f"✅ {server_id}. {server_name} | Онлайн: {online_count:,} / {max_players:,}\n"
+                            total_online += online_count
+                            online_servers += 1
+                        else:
+                            msg += f"❌ {server_id}. {server_name} | Сервер офлайн\n"
+                    
+                    msg += f"\n📊 **Общая статистика:**\n"
+                    msg += f"🎮 Всего игроков онлайн: **{total_online:,}**\n"
+                    msg += f"⚡ Серверов онлайн: **{online_servers}/{len(arizona_servers)}**\n"
+                    msg += f"\n📝 Статистика игрока: /stats <ник> <ID сервера>\n"
+                    msg += f"💡 Пример: /stats PlayerName 1"
+                    
+                    return msg
+                    
+        except Exception as e:
+            logger.error(f"Error getting servers status from API: {e}")
+            return self.get_servers_info()  # Fallback to static list
 
     async def get_servers_info_with_status(self) -> str:
         """Get information about all Arizona RP servers with direct SAMP query"""

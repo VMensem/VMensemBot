@@ -364,8 +364,22 @@ class UnifiedBot:
         # Servers command
         @self.dp.message(Command("servers"))
         async def servers_command(message: Message):
-            servers_info = arizona_api.get_servers_info()
-            await message.answer(servers_info)
+            # Отправляем сообщение о загрузке
+            loading_msg = await message.answer("🔄 Загружаю актуальный статус серверов Arizona RP...")
+            
+            try:
+                # Получаем актуальную информацию о серверах
+                servers_info = await arizona_api.get_servers_status_from_api()
+                await loading_msg.edit_text(servers_info, parse_mode="Markdown")
+                
+            except Exception as e:
+                logger.error(f"Error in servers command: {e}")
+                # В случае ошибки показываем базовую информацию
+                fallback_info = arizona_api.get_servers_info()
+                await loading_msg.edit_text(
+                    f"⚠️ Не удалось получить актуальный статус серверов.\n"
+                    f"Показываю базовую информацию:\n\n{fallback_info}"
+                )
         
         # Admin commands for banned words
         @self.dp.message(Command("addword"), IsAdmin())
