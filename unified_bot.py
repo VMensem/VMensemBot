@@ -361,27 +361,11 @@ class UnifiedBot:
                 logger.error(f"Error in Telegram stats command: {e}")
                 await processing_msg.edit_text("❌ Произошла ошибка при получении статистики.")
         
-        # Servers command with status
+        # Servers command
         @self.dp.message(Command("servers"))
         async def servers_command(message: Message):
-            # Отправляем сообщение о загрузке
-            loading_msg = await message.answer("🔄 Загружаю статус серверов Arizona RP...")
-            
-            try:
-                # Получаем информацию о серверах со статусом
-                servers_info = await arizona_api.get_servers_info_with_status()
-                
-                # Обновляем сообщение с актуальной информацией
-                await loading_msg.edit_text(servers_info, parse_mode="Markdown")
-                
-            except Exception as e:
-                logger.error(f"Error fetching servers status: {e}")
-                # В случае ошибки показываем базовую информацию
-                fallback_info = arizona_api.get_servers_info()
-                await loading_msg.edit_text(
-                    f"⚠️ Не удалось получить актуальный статус серверов.\n"
-                    f"Показываю базовую информацию:\n\n{fallback_info}"
-                )
+            servers_info = arizona_api.get_servers_info()
+            await message.answer(servers_info)
         
         # Admin commands for banned words
         @self.dp.message(Command("addword"), IsAdmin())

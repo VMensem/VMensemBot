@@ -240,45 +240,16 @@ class DiscordBot:
                     )
                     await ctx.send(embed=embed)
         
-        @self.bot.command(name="servers", help="Показать все серверы Arizona RP с актуальным статусом")
+        @self.bot.command(name="servers", help="Показать все серверы Arizona RP")
         async def discord_servers(ctx: commands.Context):
-            """Discord servers command with status"""
-            # Отправляем сообщение о загрузке
-            loading_embed = discord.Embed(
-                title="🔄 Загрузка статуса серверов",
-                description="Получаю актуальную информацию о серверах Arizona RP...",
-                color=0xffaa00
+            """Discord servers command"""
+            server_msg = arizona_api.get_servers_info()
+            
+            embed = discord.Embed(
+                title="🌐 Arizona RP Servers",
+                description=server_msg,
+                color=0x00ff00
             )
-            message = await ctx.send(embed=loading_embed)
-            
-            try:
-                # Получаем информацию о серверах со статусом
-                servers_info = await arizona_api.get_servers_info_with_status()
-                
-                # Создаем embed с актуальной информацией
-                embed = discord.Embed(
-                    title="🌐 Arizona RP Servers",
-                    description=servers_info,
-                    color=0x00ff00
-                )
-                embed.set_footer(text="Обновлено автоматически")
-                
-                # Обновляем сообщение
-                await message.edit(embed=embed)
-                
-            except Exception as e:
-                logger.error(f"Error fetching servers status for Discord: {e}")
-                # В случае ошибки показываем базовую информацию
-                fallback_info = arizona_api.get_servers_info()
-                
-                error_embed = discord.Embed(
-                    title="⚠️ Ошибка загрузки статуса",
-                    description=f"Не удалось получить актуальный статус серверов.\nПоказываю базовую информацию:\n\n{fallback_info}",
-                    color=0xff6600
-                )
-                
-                await message.edit(embed=error_embed)
-            
             embed.add_field(
                 name="📝 Использование",
                 value="`!stats <ник> <ID сервера>`\n**Пример:** `!stats PlayerName 1`",
