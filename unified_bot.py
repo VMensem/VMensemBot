@@ -71,11 +71,11 @@ class UnifiedBot:
         async def help_command(message: Message):
             await message.answer(HELP_MESSAGE_USER, parse_mode="HTML")
         #Админы
-        @self.dp.message(Command("help")) isAdmin()
+        @self.dp.message(Command("help") isAdmin())
         async def help_command(message: Message):
             await message.answer(HELP_MESSAGE_ADMIN, parse_mode="HTML")
         #Созлателю
-        @self.dp.message(Command("help")) isCreator()
+        @self.dp.message(Command("help") isCreator())
         async def help_command(message: Message):
             await message.answer(HELP_MESSAGE_CREATOR, parse_mode="HTML")
         
