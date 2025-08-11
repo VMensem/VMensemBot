@@ -66,18 +66,20 @@ class UnifiedBot:
             await message.answer(WELCOME_MESSAGE, parse_mode="HTML")
         
         # Help command
-        #Игроки
-        @self.dp.message(Command("help"))
-        async def help_command(message: Message):
-            await message.answer(HELP_MESSAGE_USER, parse_mode="HTML")
-        #Админы
-        @self.dp.message(Command("help"), IsAdmin())
-        async def help_command(message: Message):
-            await message.answer(HELP_MESSAGE_ADMIN, parse_mode="HTML")
         #Создателю
         @self.dp.message(Command("help"), IsCreator())
         async def help_command(message: Message):
             await message.answer(HELP_MESSAGE_CREATOR, parse_mode="HTML")
+
+        #Админы
+        @self.dp.message(Command("help"), IsAdmin())
+        async def help_command(message: Message):
+            await message.answer(HELP_MESSAGE_ADMIN, parse_mode="HTML")
+
+        #Игроки
+        @self.dp.message(Command("help"))
+        async def help_command(message: Message):
+            await message.answer(HELP_MESSAGE_USER, parse_mode="HTML")
         
         # Rules commands
         @self.dp.message(Command("rules"))
