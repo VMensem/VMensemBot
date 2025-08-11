@@ -17,7 +17,7 @@ from aiogram.exceptions import TelegramAPIError
 
 from unified_config import (
     BOT_TOKEN, CREATOR_ID, validate_config, logger,
-    WELCOME_MESSAGE, HELP_MESSAGE, RANK_MESSAGE, SHOP_HELP_MESSAGE,
+    WELCOME_MESSAGE, HELP_MESSAGE_USER, HELP_MESSAGE_ADMIN, HELP_MESSAGE_CREATOR,RANK_MESSAGE, SHOP_HELP_MESSAGE,
     COMMAND_DESCRIPTIONS
 )
 from data_manager import DataManager
@@ -66,9 +66,18 @@ class UnifiedBot:
             await message.answer(WELCOME_MESSAGE, parse_mode="HTML")
         
         # Help command
+        #Игроки
         @self.dp.message(Command("help"))
         async def help_command(message: Message):
-            await message.answer(HELP_MESSAGE, parse_mode="HTML")
+            await message.answer(HELP_MESSAGE_USER, parse_mode="HTML")
+        #Админы
+        @self.dp.message(Command("help")) isAdmin()
+        async def help_command(message: Message):
+            await message.answer(HELP_MESSAGE_ADMIN, parse_mode="HTML")
+        #Созлателю
+        @self.dp.message(Command("help")) isCreator()
+        async def help_command(message: Message):
+            await message.answer(HELP_MESSAGE_CREATOR, parse_mode="HTML")
         
         # Rules commands
         @self.dp.message(Command("rules"))
