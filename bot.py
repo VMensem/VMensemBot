@@ -1,18 +1,10 @@
-#!/usr/bin/env python3
-"""
-Main entry point for the unified MensemBot
-Supports both Telegram and Discord platforms with Arizona RP statistics
-"""
-
 import asyncio
 import sys
 import signal
 import logging
-
-# Import managers and unified bot
 from unified_bot import UnifiedBot
 
-# Setup logging
+# Логирование
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -20,12 +12,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def run_bot():
-    """Запуск бота без автоматического перезапуска"""
-    # Создаем основной бот
     bot = UnifiedBot()
     bot.setup_signal_handlers()
 
-    # Обработка сигналов для корректной остановки
     def signal_handler(signum, frame):
         logger.info(f"Получен сигнал {signum}, останавливаем бота...")
         asyncio.create_task(bot.cleanup())
@@ -34,13 +23,7 @@ async def run_bot():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    try:
-        # Запускаем бота
-        await bot.run()
-
-    except Exception as e:
-        logger.error(f"Ошибка в главном цикле: {e}")
-        raise
+    await bot.run()
 
 if __name__ == "__main__":
     print("=" * 60)
@@ -49,6 +32,8 @@ if __name__ == "__main__":
     print("🔄 Без автоматического перезапуска")
     print("=" * 60)
 
+    try:
+        asyncio.run(run_bot())
     except KeyboardInterrupt:
         print("\n🛑 Бот остановлен пользователем")
     except SystemExit as e:
