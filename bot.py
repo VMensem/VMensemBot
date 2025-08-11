@@ -10,7 +10,6 @@ import signal
 import logging
 
 # Import managers and unified bot
-from session_manager import SessionManager
 from unified_bot import UnifiedBot
 
 # Setup logging
@@ -45,16 +44,10 @@ async def run_bot():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("🤖 MensemBot - Continuous Running")
-    print("📱 Telegram + Discord Support")
+    print("🤖 MensemBot - Запускается")
+    print("📱 Telegram + Discord")
     print("🔄 Без автоматического перезапуска")
     print("=" * 60)
-
-    try:
-        # Используем менеджер сессий для предотвращения множественных запусков
-        with SessionManager():
-            logger.info("Сессия успешно захвачена, запускаем бота...")
-            asyncio.run(run_bot())
 
     except KeyboardInterrupt:
         print("\n🛑 Бот остановлен пользователем")
