@@ -156,7 +156,7 @@ class UnifiedBot:
                 await message.answer("🔒 Команда /shop работает только в личных сообщениях с ботом.")
                 return
             
-            await message.answer(SHOP_HELP_MESSAGE)
+            await message.answer(SHOP_HELP_MESSAGE, parse_mode="HTML")
 
         # Shop application handler (media with caption)
         @self.dp.message(F.photo | F.video, F.chat.type == 'private')
@@ -371,7 +371,7 @@ class UnifiedBot:
         @self.dp.message(Command("servers"))
         async def servers_command(message: Message):
             # Отправляем сообщение о загрузке
-            loading_msg = await message.answer("🔄 Загружаю актуальный статус серверов Arizona RP...")
+            loading_msg = await message.answer("<b>🔄 Загружаю актуальный статус серверов Arizona RP...</b>", parse_mode="HTML")
             
             try:
                 # Получаем актуальную информацию о серверах
@@ -448,7 +448,7 @@ class UnifiedBot:
                 staff_text = "\n".join(staff_list)
                 await message.answer(f"⚠️ <b>Создатель:</b> @vladlotto\n👥 <b>Администрация:</b>\n\n{staff_text}", parse_mode="HTML")
             else:
-                await message.answer("⚠️ <b>Создатель:</b> @vladlotto\n👥Администрация:\n\nСписок пуст")
+                await message.answer("⚠️ <b>Создатель:</b> @vladlotto\n<b>👥️ Администрация:</b>\n\nСписок пуст", parse_mode="HTML")
 
         # Admin management (Creator only)
         @self.dp.message(Command("addadmin"), IsCreator())
