@@ -446,9 +446,9 @@ class UnifiedBot:
                     staff_list.append(f"• @{username}")
                 
                 staff_text = "\n".join(staff_list)
-                await message.answer(f"👥 <b>Администрация:</b>\n\n{staff_text}", parse_mode="HTML")
+                await message.answer(f"⚠️ <b>Создатель:</b> @vladlotto\n👥 <b>Администрация:</b>\n\n{staff_text}", parse_mode="HTML")
             else:
-                await message.answer("👥Администрация:\n\nСписок пуст")
+                await message.answer("⚠️ <b>Создатель:</b> @vladlotto\n👥Администрация:\n\nСписок пуст")
 
         # Admin management (Creator only)
         @self.dp.message(Command("addadmin"), IsCreator())
