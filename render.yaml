@@ -2,7 +2,7 @@ services:
   - type: web
     name: mensembot
     env: python
-    repo: https://github.com/ваш-username/MensemBot.git  # Замените на ваш репозиторий
+    repo: https://github.com/VMensem/VMensemBot.git  # Замените на ваш репозиторий
     buildCommand: pip install -r render_requirements.txt
     startCommand: python bot.py
     plan: free
