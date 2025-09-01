@@ -11,7 +11,7 @@ class IsAdmin(BaseFilter):
     async def __call__(self, message: types.Message) -> bool:
         data_manager = DataManager()
         admins = data_manager.get_admins()
-        return message.from_user.id in admins or message.from_user.id == CREATOR_ID
+        return message.from_user.id in admins
 
 class IsCreator(BaseFilter):
     """Filter for checking if user is creator."""
