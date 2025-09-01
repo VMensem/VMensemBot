@@ -48,47 +48,45 @@ class DataManager:
             print(f"Error writing to {file_path}: {e}")
             return False
 
+    # -----------------------------
+    # Rules
+    # -----------------------------
     def get_rules(self) -> str:
-        """Get current rules."""
         data = self._read_json(RULES_FILE)
         return data.get("rules", "Правила пока не установлены.")
 
     def set_rules(self, rules: str) -> bool:
-        """Set new rules."""
         return self._write_json(RULES_FILE, {"rules": rules})
 
-    def get_admins(self) -> List[int]:
-        """Get list of admin IDs."""
+    # -----------------------------
+    # Admins
+    # -----------------------------
+    def get_admins(self) -> dict:
+        """Get admins as dict[str, username]. Always returns dict for consistency."""
         data = self._read_json(ADMINS_FILE)
-        # Support both old format (list of IDs) and new format (dict with usernames)
         admins = data.get("admins", [])
+
+        # Конвертируем старый формат list[int] в dict[str, username]
         if isinstance(admins, list):
-            return admins
+            admin_dict = {str(admin_id): f"ID_{admin_id}" for admin_id in admins}
+            # Обновляем JSON
+            self._write_json(ADMINS_FILE, {"admins": admin_dict})
+            return admin_dict
+
+        # Если уже dict — оставляем как есть
         elif isinstance(admins, dict):
-            return list(admins.keys())
-        return []
+            return admins
+
+        return {}
 
     def get_admin_usernames(self) -> Dict[int, str]:
         """Get dict of admin IDs to usernames."""
-        data = self._read_json(ADMINS_FILE)
-        admins = data.get("admins", [])
-        if isinstance(admins, dict):
-            # Convert string keys back to int
-            return {int(k): v for k, v in admins.items()}
-        return {}
+        admins = self.get_admins()
+        return {int(k): v for k, v in admins.items()}
 
     def add_admin(self, admin_id: int, username: str = None) -> bool:
         """Add new admin with username."""
-        data = self._read_json(ADMINS_FILE)
-        admins = data.get("admins", [])
-        
-        # Convert old format to new format if needed
-        if isinstance(admins, list):
-            admin_dict = {}
-            for old_id in admins:
-                admin_dict[str(old_id)] = f"ID_{old_id}"
-            admins = admin_dict
-        
+        admins = self.get_admins()
         admin_id_str = str(admin_id)
         if admin_id_str not in admins:
             admins[admin_id_str] = username or f"ID_{admin_id}"
@@ -97,27 +95,26 @@ class DataManager:
 
     def remove_admin(self, admin_id: int) -> bool:
         """Remove admin."""
-        data = self._read_json(ADMINS_FILE)
-        admins = data.get("admins", [])
-        
-        if isinstance(admins, list):
-            if admin_id in admins:
-                admins.remove(admin_id)
-                return self._write_json(ADMINS_FILE, {"admins": admins})
-        elif isinstance(admins, dict):
-            admin_id_str = str(admin_id)
-            if admin_id_str in admins:
-                del admins[admin_id_str]
-                return self._write_json(ADMINS_FILE, {"admins": admins})
+        admins = self.get_admins()
+        admin_id_str = str(admin_id)
+        if admin_id_str in admins:
+            del admins[admin_id_str]
+            return self._write_json(ADMINS_FILE, {"admins": admins})
         return False
 
+    def is_admin(self, user_id: int) -> bool:
+        """Check if user is admin."""
+        admins = self.get_admins()
+        return str(user_id) in admins
+
+    # -----------------------------
+    # Banned words
+    # -----------------------------
     def get_banned_words(self) -> List[str]:
-        """Get list of banned words."""
         data = self._read_json(BANNED_WORDS_FILE)
         return data.get("words", [])
 
     def add_banned_word(self, word: str) -> bool:
-        """Add new banned word."""
         data = self._read_json(BANNED_WORDS_FILE)
         words = data.get("words", [])
         if word.lower() not in words:
@@ -126,7 +123,6 @@ class DataManager:
         return False
 
     def remove_banned_word(self, word: str) -> bool:
-        """Remove banned word."""
         data = self._read_json(BANNED_WORDS_FILE)
         words = data.get("words", [])
         if word.lower() in words:
@@ -134,35 +130,32 @@ class DataManager:
             return self._write_json(BANNED_WORDS_FILE, {"words": words})
         return False
 
+    # -----------------------------
+    # Info
+    # -----------------------------
     def get_info(self) -> str:
-        """Get current info."""
         data = self._read_json(INFO_FILE)
         return data.get("info", "Информация пока не установлена.")
 
     def set_info(self, info: str) -> bool:
-        """Set new info."""
         info = info.replace("<", "&lt;").replace(">", "&gt;")
         return self._write_json(INFO_FILE, {"info": info})
 
-    
-
+    # -----------------------------
+    # Rank
+    # -----------------------------
     def get_rank(self) -> str:
-        """Get rank message."""
         data = self._read_json("data/rank.json")
         return data.get("rank_message", "Информация о рангах пока не установлена.")
 
     def set_rank(self, message: str) -> bool:
-        """Set rank message."""
         message = message.replace("<", "&lt;").replace(">", "&gt;")
         return self._write_json("data/rank.json", {"rank_message": message})
 
-    def is_admin(self, user_id: int) -> bool:
-        """Check if user is admin."""
-        admins = self.get_admins()
-        return user_id in admins
-    
+    # -----------------------------
+    # Family chat ID
+    # -----------------------------
     def get_family_chat_id(self) -> Optional[int]:
-        """Get family leadership chat ID for idea forwarding"""
         data = self._read_json(INFO_FILE)
         family_chat = data.get("family_chat_id")
         if family_chat:
@@ -171,9 +164,8 @@ class DataManager:
             except ValueError:
                 return None
         return None
-        
+
     def set_family_chat_id(self, chat_id: int) -> bool:
-        """Set family leadership chat ID"""
         try:
             data = self._read_json(INFO_FILE)
             data["family_chat_id"] = chat_id
