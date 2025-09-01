@@ -10,8 +10,17 @@ class IsAdmin(BaseFilter):
 
     async def __call__(self, message: types.Message) -> bool:
         data_manager = DataManager()
-        admins = data_manager.get_admins()
-        return message.from_user.id in admins
+        admins = data_manager.get_admins()  # список админов
+
+        user_id_str = str(message.from_user.id)
+
+        # Поддержка обеих форм: list[int] или dict[str, username]
+        if isinstance(admins, list):
+            return message.from_user.id in admins or message.from_user.id == CREATOR_ID
+        elif isinstance(admins, dict):
+            return user_id_str in admins or message.from_user.id == CREATOR_ID
+
+        return False
 
 class IsCreator(BaseFilter):
     """Filter for checking if user is creator."""
