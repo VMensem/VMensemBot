@@ -2,7 +2,7 @@ import json
 import os
 import logging
 from typing import List, Dict, Any, Optional
-from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE, INFO_FILE
+from config import RULES_FILE, ADMINS_FILE, BANNED_WORDS_FILE, INFO_FILE, RANK_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,8 @@ class DataManager:
 
         default_files = {
             RULES_FILE: {"rules": "Правила пока не установлены."},
-            ADMINS_FILE: {"admins": []},
+            RANK_FILE: {"rank": "Правила пока не установлены."},
+            ADMINS_FILE: {"admins": [6766653541, 8259872971]},
             BANNED_WORDS_FILE: {"words": []},
             INFO_FILE: {"info": "Информация пока не установлена."},
             "data/rank.json": {"rank_message": "Информация о рангах пока не установлена."} 
