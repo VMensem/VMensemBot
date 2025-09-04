@@ -109,8 +109,8 @@ class DiscordBotHandlers:
             server_msg = "🌐 **Серверы Arizona RP:**\n\n"
 
             # ПК серверы
-            server_msg += "💻 **ПК серверы (1-31):**\n"
-            pc_servers = " 1: Phoenix\n 2: Tucson\n 3: Scottdale\n 4: Chandler\n 5: Brainburg\n 6: Saint Rose\n 7: Mesa\n 8: Red Rock\n 9: Yuma\n10: Surprise\n11: Prescott\n12: Glendale\n13: Kingman\n14: Winslow\n15: Payson\n16: Gilbert\n17: Show Low\n18: Casa Grande\n19: Page\n20: Sun City\n21: Queen Creek\n22: Sedona\n23: Holiday\n24: Wednesday\n25: Yava\n26: Faraway\n27: Bumble Bee\n28: Christmas\n29: Mirage\n30: Love\n31: Drake"
+            server_msg += "💻 **ПК серверы (1-32):**\n"
+            pc_servers = " 1: Phoenix\n 2: Tucson\n 3: Scottdale\n 4: Chandler\n 5: Brainburg\n 6: Saint Rose\n 7: Mesa\n 8: Red Rock\n 9: Yuma\n10: Surprise\n11: Prescott\n12: Glendale\n13: Kingman\n14: Winslow\n15: Payson\n16: Gilbert\n17: Show Low\n18: Casa Grande\n19: Page\n20: Sun City\n21: Queen Creek\n22: Sedona\n23: Holiday\n24: Wednesday\n25: Yava\n26: Faraway\n27: Bumble Bee\n28: Christmas\n29: Mirage\n30: Love\n31: Drake\n32: Space\n\n200: ViceCity"
             server_msg += f"{pc_servers}\n\n"
 
             # Мобайл серверы
@@ -131,7 +131,7 @@ class DiscordBotHandlers:
 **!stats <ник> <ID сервера>** - Получить информацию об игроке
 **!servers** - Показать все серверы Arizona RP
 
-**Доступные серверы Arizona RP:** ПК 1-31, Мобайл 101-103
+**Доступные серверы Arizona RP:** ПК 1-32, Мобайл 101-103, ViceCity 200
 
 **Пример:** `!stats PlayerName 1`
             """
@@ -158,7 +158,7 @@ class TelegramBotHandlers:
 • `/stats <ник> <ID сервера>` - Получить статистику игрока
 • `/servers` - Показать все серверы Arizona RP
 
-**Доступные серверы Arizona RP:** ПК 1-31, Мобайл 101-103
+**Доступные серверы Arizona RP:** ПК 1-32, Мобайл 101-103, ViceCity 200
 
 **Пример:** `/stats PlayerName 1`
 
@@ -172,8 +172,8 @@ class TelegramBotHandlers:
             server_msg = "🌐 **Серверы Arizona RP:**\n\n"
 
             # ПК серверы
-            server_msg += "💻 **ПК серверы (1-31):**\n"
-            pc_servers = " 1: Phoenix\n 2: Tucson\n 3: Scottdale\n 4: Chandler\n 5: Brainburg\n 6: Saint Rose\n 7: Mesa\n 8: Red Rock\n 9: Yuma\n10: Surprise\n11: Prescott\n12: Glendale\n13: Kingman\n14: Winslow\n15: Payson\n16: Gilbert\n17: Show Low\n18: Casa Grande\n19: Page\n20: Sun City\n21: Queen Creek\n22: Sedona\n23: Holiday\n24: Wednesday\n25: Yava\n26: Faraway\n27: Bumble Bee\n28: Christmas\n29: Mirage\n30: Love\n31: Drake"
+            server_msg += "💻 **ПК серверы (1-32):**\n"
+            pc_servers = " 1: Phoenix\n 2: Tucson\n 3: Scottdale\n 4: Chandler\n 5: Brainburg\n 6: Saint Rose\n 7: Mesa\n 8: Red Rock\n 9: Yuma\n10: Surprise\n11: Prescott\n12: Glendale\n13: Kingman\n14: Winslow\n15: Payson\n16: Gilbert\n17: Show Low\n18: Casa Grande\n19: Page\n20: Sun City\n21: Queen Creek\n22: Sedona\n23: Holiday\n24: Wednesday\n25: Yava\n26: Faraway\n27: Bumble Bee\n28: Christmas\n29: Mirage\n30: Love\n31: Drake\n32: Space\n\n200: ViceCity"
             server_msg += f"{pc_servers}\n\n"
 
             # Мобайл серверы
@@ -196,7 +196,7 @@ class TelegramBotHandlers:
 **/help** - Показать эту справку
 **/start** - Начать работу с ботом
 
-**Доступные серверы Arizona RP:** ПК 1-31, Мобайл 101-103
+**Доступные серверы Arizona RP:** ПК 1-32, Мобайл 101-103, ViceCity 200
 
 **Пример использования:**
 `/stats PlayerName 1`
@@ -218,7 +218,7 @@ class TelegramBotHandlers:
                 await message.answer(
                     "❌ Неверный формат команды!\n\n"
                     "**Использование:** `/stats <ник> <ID сервера>`\n\n"
-                    "**Доступные серверы:** ПК 1-31, Мобайл 101-103\n"
+                    "**Доступные серверы:** ПК 1-32, Мобайл 101-103, ViceCity 200\n"
                     "**Посмотреть все серверы:** `/servers`\n\n"
                     "**Пример:** `/stats PlayerName 1`",
                     parse_mode="Markdown")
