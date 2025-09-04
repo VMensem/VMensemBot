@@ -66,10 +66,10 @@ class ArizonaRPAPIClient:
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # Arizona RP server IDs (ПК серверы 1-31, мобайл 101-103)
+        # Arizona RP server IDs (ПК серверы 1-32, мобайл 101-103)
         valid_servers = {}
         # ПК серверы
-        for i in range(1, 32):  # Серверы с 1 по 31
+        for i in range(1, 32):  # Серверы с 1 по 32
             valid_servers[i] = f"ПК-{i}"
         # Мобайл серверы
         for i in range(101, 104):  # Серверы 101, 102, 103
@@ -349,7 +349,7 @@ class ArizonaRPAPIClient:
             11: "Prescott", 12: "Glendale", 13: "Kingman", 14: "Winslow", 15: "Payson",
             16: "Gilbert", 17: "Show Low", 18: "Casa-Grande", 19: "Page", 20: "Sun-City",
             21: "Queen-Creek", 22: "Sedona", 23: "Holiday", 24: "Wednesday", 25: "Yava",
-            26: "Faraway", 27: "Bumble Bee", 28: "Christmas", 29: "Mirage", 30: "Love", 31: "Drake", 32: "Space", 200: "ViceCity"
+            26: "Faraway", 27: "Bumble Bee", 28: "Christmas", 29: "Mirage", 30: "Love", 31: "Drake", 32: "Space", 200: "ViceCity",
             # Мобайл серверы
             101: "Mobile I", 102: "Mobile II", 103: "Mobile III"
         }
