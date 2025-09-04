@@ -39,7 +39,7 @@ def validate_server_id(server_id: int) -> Tuple[bool, Optional[str]]:
     # Arizona RP server IDs (ПК серверы 1-31, мобайл 101-103)
     valid_servers = {}
     # ПК серверы
-    for i in range(1, 32):  # Серверы с 1 по 31
+    for i in range(1, 201):  # Серверы с 1 по 32
         valid_servers[i] = f"ПК-{i}"
     # Мобайл серверы
     for i in range(101, 104):  # Серверы 101, 102, 103
