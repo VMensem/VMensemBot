@@ -312,7 +312,7 @@ class UnifiedBot:
                 await message.answer(
                     "❌ Неверный формат команды!\n\n"
                     "<b>Использование:</b> /stats &lt;ник&gt; &lt;ID сервера&gt;\n\n"
-                    "<b>Доступные серверы:</b> ПК 1-31, Мобайл 101-103\n"
+                    "<b>Доступные серверы:</b> ПК 1-32, Мобайл 101-103, ViceCity 200\n"
                     "<b>Посмотреть все серверы:</b> /servers\n\n"
                     "<b>Пример:</b> /stats PlayerName 1",
                     parse_mode="HTML"
