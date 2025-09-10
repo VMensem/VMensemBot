@@ -1,6 +1,16 @@
 import logging
 from typing import Optional
 
+# Заглушка для audioop (чтобы не падал Discord на Linux/Render)
+try:
+    import audioop
+except ModuleNotFoundError:
+    import types
+    audioop = types.SimpleNamespace()
+    audioop.add = lambda *a, **k: None
+    audioop.mul = lambda *a, **k: None
+    audioop.max = lambda *a, **k: 0
+
 import discord
 from discord import app_commands
 from discord.ext import commands
