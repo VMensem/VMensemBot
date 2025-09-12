@@ -1,12 +1,9 @@
-"""
-Discord bot handlers for the unified MensemBot (slash-commands version)
-"""
-
 import logging
+import os
 import discord
 from typing import Optional
-from arizona_api import arizona_api
-from unified_config import DISCORD_TOKEN
+from arizona_api import arizona_api  # твой модуль API
+from unified_config import DISCORD_TOKEN_ENV_NAME  # имя переменной окружения с токеном
 
 logger = logging.getLogger(__name__)
 
@@ -18,17 +15,16 @@ class DiscordBot:
         self.is_ready = False
 
     def setup(self):
-        """Setup Discord bot"""
-        if not DISCORD_TOKEN:
-            logger.warning("Discord token not provided, Discord bot will not start")
+        token = os.getenv(DISCORD_TOKEN_ENV_NAME)
+        if not token:
+            logger.warning("Discord token not provided, bot will not start")
             return False
 
         try:
             intents = discord.Intents.default()
             intents.guilds = True
-            intents.message_content = False  # для slash-команд не нужно
+            intents.message_content = False
 
-            # Pycord slash-commands bot
             self.bot = discord.Bot(intents=intents)
 
             self.setup_events()
@@ -46,8 +42,6 @@ class DiscordBot:
         async def on_ready():
             self.is_ready = True
             logger.info(f"Discord бот запущен как {self.bot.user}")
-            print(f"🤖 Discord бот запущен как {self.bot.user}")
-
             await self.bot.change_presence(
                 activity=discord.Game(name="/stats <ник> <сервер> | /help")
             )
@@ -70,7 +64,7 @@ class DiscordBot:
             )
             embed.add_field(
                 name="ℹ️ Общие команды",
-                value="`/help` - Показать эту справку\n"
+                value="`/help` - Показать справку\n"
                       "`/about` - О боте",
                 inline=False
             )
@@ -93,24 +87,21 @@ class DiscordBot:
                 inline=False
             )
             embed.add_field(name="👑 Создатель", value="@vladlotto", inline=True)
-            embed.add_field(name="📱 Telegram", value="@mensembot", inline=True)
             embed.set_footer(text="Версия 2.0 • Discord + Telegram")
             await ctx.respond(embed=embed)
 
         @bot.slash_command(name="stats", description="Получить статистику игрока Arizona RP")
         async def stats_cmd(ctx: discord.ApplicationContext, nickname: str, server_id: int):
-            await ctx.defer()  # покажет "думает..."
-            # validate nickname
+            await ctx.defer()
             is_valid_nick, nick_error = arizona_api.validate_nickname(nickname)
             if not is_valid_nick:
                 await ctx.respond(f"❌ {nick_error}", ephemeral=True)
                 return
-            # validate server
             is_valid_server, server_error = arizona_api.validate_server_id(server_id)
             if not is_valid_server:
                 await ctx.respond(f"❌ {server_error}", ephemeral=True)
                 return
-            # fetch stats
+
             data, error = await arizona_api.fetch_player_stats(nickname, server_id)
             if error:
                 await ctx.respond(f"❌ {error}", ephemeral=True)
@@ -149,7 +140,7 @@ class DiscordBot:
                 await ctx.respond(embed=embed)
             except Exception as e:
                 logger.error(f"Error fetching servers: {e}")
-                fallback = arizona_api.get_servers_info()
+                fallback = await arizona_api.get_servers_info()
                 embed = discord.Embed(
                     title="⚠️ Ошибка загрузки",
                     description=f"Не удалось получить актуальный статус.\n\n{fallback}",
@@ -158,12 +149,13 @@ class DiscordBot:
                 await ctx.respond(embed=embed)
 
     async def start(self):
-        if not self.bot:
+        token = os.getenv(DISCORD_TOKEN_ENV_NAME)
+        if not self.bot or not token:
             logger.warning("Discord bot not configured, skipping start")
             return
         try:
             logger.info("Starting Discord bot...")
-            await self.bot.start(DISCORD_TOKEN)
+            await self.bot.start(token)
         except Exception as e:
             logger.error(f"Discord bot error: {e}")
             raise
