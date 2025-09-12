@@ -3,7 +3,6 @@ import os
 import discord
 from typing import Optional
 from arizona_api import arizona_api  # твой модуль API
-from unified_config import DISCORD_TOKEN_ENV_NAME  # имя переменной окружения с токеном
 
 logger = logging.getLogger(__name__)
 
