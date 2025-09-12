@@ -1,5 +1,21 @@
-import asyncio
+# bot.py
 import sys
+import types
+
+# Заглушка audioop для Python 3.13 (Render не имеет этого модуля)
+if "audioop" not in sys.modules:
+    sys.modules["audioop"] = types.SimpleNamespace(
+        add=lambda *a, **k: None,
+        mul=lambda *a, **k: None,
+        max=lambda *a, **k: 0,
+        min=lambda *a, **k: 0,
+        lin2lin=lambda *a, **k: b"",
+        lin2alaw=lambda *a, **k: b"",
+        lin2ulaw=lambda *a, **k: b"",
+        ulaw2lin=lambda *a, **k: b"",
+        alaw2lin=lambda *a, **k: b"",
+    )
+import asyncio
 import signal
 import logging
 from unified_bot import UnifiedBot
