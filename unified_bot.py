@@ -34,7 +34,17 @@ if not CREATOR_ID:
     CREATOR_ID = int(os.environ.get("CREATOR_ID", 0))
 
 class UnifiedBot:
-    """Main unified bot class supporting both Telegram and Discord"""
+    ...
+    def setup_signal_handlers(self):
+        """Setup signal handlers for graceful shutdown"""
+        def signal_handler(signum, frame):
+            print(f"🛑 Получен сигнал {signum}, остановка ботов...")
+            if self.running:
+                asyncio.create_task(self.cleanup())
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
     
     def __init__(self):
         self.telegram_bot: Optional[Bot] = None
