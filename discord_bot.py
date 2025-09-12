@@ -1,206 +1,71 @@
-"""
-Discord bot handlers for the unified MensemBot (slash-commands version)
-"""
-
+import os
 import logging
 import discord
-from typing import Optional
+from discord.ext import commands
 from arizona_api import arizona_api
+from unified_config import CREATOR_ID, HELP_MESSAGE_USER
 
 logger = logging.getLogger(__name__)
 
-class DiscordBot:
-    """Discord bot with Arizona RP statistics and basic commands"""
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-    def __init__(self):
-        self.bot: Optional[discord.Bot] = None
-        self.is_ready = False
+intents = discord.Intents.default()
+intents.messages = True
+intents.message_content = True  # Важно для чтения текста сообщений
+intents.guilds = True
 
-    def setup(self):
-        """Setup Discord bot"""
-        DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
-        if not DISCORD_TOKEN:
-            logger.warning("Discord token not provided, Discord bot will not start")
-            return False
+bot = commands.Bot(command_prefix="!", intents=intents)
+is_ready = False
 
-        try:
-            intents = discord.Intents.default()
-            intents.guilds = True
-            intents.messages = True  # для префиксных команд
-            intents.message_content = True  # для чтения сообщений
+def setup():
+    return DISCORD_TOKEN is not None
 
-            # Pycord slash-commands bot
-            self.bot = discord.Bot(intents=intents)
+@bot.event
+async def on_ready():
+    global is_ready
+    is_ready = True
+    logger.info(f"Discord bot logged in as {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        logger.info(f"Synced {len(synced)} slash commands")
+    except Exception as e:
+        logger.error(f"Failed to sync commands: {e}")
 
-            self.setup_events()
-            self.setup_commands()
+# Slash /help
+@bot.tree.command(name="help", description="Показать справку по боту")
+async def slash_help(interaction: discord.Interaction):
+    await interaction.response.send_message(HELP_MESSAGE_USER, ephemeral=True)
 
-            logger.info("Discord bot configured successfully (slash-commands)")
-            return True
+# Example /stats command
+@bot.tree.command(name="stats", description="Получить статистику игрока Arizona RP")
+async def slash_stats(interaction: discord.Interaction, nickname: str, server_id: int):
+    await interaction.response.defer()  # Отметка, что бот обрабатывает запрос
+    valid_nick, nick_err = arizona_api.validate_nickname(nickname)
+    valid_server, server_err = arizona_api.validate_server_id(server_id)
+    if not valid_nick:
+        await interaction.followup.send(f"❌ {nick_err}")
+        return
+    if not valid_server:
+        await interaction.followup.send(f"❌ {server_err}")
+        return
 
-        except Exception as e:
-            logger.error(f"Failed to setup Discord bot: {e}")
-            return False
+    data, error = await arizona_api.fetch_player_stats(nickname, server_id)
+    if error:
+        await interaction.followup.send(f"❌ {error}")
+        return
 
-    def setup_events(self):
-        @self.bot.event
-        async def on_ready():
-            self.is_ready = True
-            logger.info(f"Discord бот запущен как {self.bot.user}")
-            print(f"🤖 Discord бот запущен как {self.bot.user}")
+    formatted_stats = arizona_api.format_stats(data, nickname, server_id) if data else "❌ Не удалось получить данные"
+    if len(formatted_stats) > 2000:  # Discord limit
+        formatted_stats = formatted_stats[:1997] + "..."
+    await interaction.followup.send(formatted_stats)
 
-            await self.bot.change_presence(
-                activity=discord.Game(name="/stats <ник> <сервер> | /help")
-            )
+# Optional: simple text command !help
+@bot.command(name="help")
+async def text_help(ctx):
+    await ctx.send(HELP_MESSAGE_USER)
 
-        # Префиксные команды (!help)
-        @self.bot.event
-        async def on_message(message):
-            if message.author.bot:
-                return
+# Remove old /finish command if exists
+@bot.tree.remove_command("finish", type=None)
 
-            content = message.content.lower()
-
-            if content.startswith('!help'):
-                embed = discord.Embed(
-                    title="🤖 MensemBot - Справка",
-                    color=0x00ff00,
-                    description="Многофункциональный бот для Discord и Telegram"
-                )
-                embed.add_field(
-                    name="🎮 Arizona RP",
-                    value="`/stats <ник> <ID сервера>` - Статистика игрока\n"
-                          "`/servers` - Онлайн серверов Arizona RP",
-                    inline=False
-                )
-                embed.add_field(
-                    name="ℹ️ Общие команды",
-                    value="`/help` - Показать эту справку\n"
-                          "`/about` - О боте",
-                    inline=False
-                )
-                embed.set_footer(text="Доступные серверы: ПК 1-31, Мобайл 101-103")
-                await message.channel.send(embed=embed)
-
-    def setup_commands(self):
-        bot = self.bot
-
-        @bot.slash_command(name="help", description="Показать справку по командам")
-        async def help_cmd(ctx: discord.ApplicationContext):
-            embed = discord.Embed(
-                title="🤖 MensemBot - Справка",
-                color=0x00ff00,
-                description="Многофункциональный бот для Discord и Telegram"
-            )
-            embed.add_field(
-                name="🎮 Arizona RP",
-                value="`/stats <ник> <ID сервера>` - Статистика игрока\n"
-                      "`/servers` - Онлайн серверов Arizona RP",
-                inline=False
-            )
-            embed.add_field(
-                name="ℹ️ Общие команды",
-                value="`/help` - Показать эту справку\n"
-                      "`/about` - О боте",
-                inline=False
-            )
-            embed.set_footer(text="Доступные серверы: ПК 1-31, Мобайл 101-103")
-            await ctx.respond(embed=embed, ephemeral=True)
-
-        @bot.slash_command(name="about", description="Информация о боте")
-        async def about_cmd(ctx: discord.ApplicationContext):
-            embed = discord.Embed(
-                title="🤖 MensemBot",
-                color=0x0099ff,
-                description="Многофункциональный бот для статистики игроков Arizona RP"
-            )
-            embed.add_field(
-                name="🔧 Функции",
-                value="• Статистика игроков Arizona RP\n"
-                      "• Управление сообществом\n"
-                      "• Модерация чата\n"
-                      "• Поддержка Discord и Telegram",
-                inline=False
-            )
-            embed.add_field(name="👑 Создатель", value="@vladlotto", inline=True)
-            embed.add_field(name="📱 Telegram", value="@mensembot", inline=True)
-            embed.set_footer(text="Версия 2.0 • Discord + Telegram")
-            await ctx.respond(embed=embed)
-
-        @bot.slash_command(name="stats", description="Получить статистику игрока Arizona RP")
-        async def stats_cmd(ctx: discord.ApplicationContext, nickname: str, server_id: int):
-            await ctx.defer()
-            is_valid_nick, nick_error = arizona_api.validate_nickname(nickname)
-            if not is_valid_nick:
-                await ctx.respond(f"❌ {nick_error}", ephemeral=True)
-                return
-            is_valid_server, server_error = arizona_api.validate_server_id(server_id)
-            if not is_valid_server:
-                await ctx.respond(f"❌ {server_error}", ephemeral=True)
-                return
-            data, error = await arizona_api.fetch_player_stats(nickname, server_id)
-            if error:
-                await ctx.respond(f"❌ {error}", ephemeral=True)
-                return
-            if data:
-                formatted = arizona_api.format_stats(data, nickname, server_id)
-                if len(formatted) > 2000:
-                    import io
-                    stats_file = io.StringIO(formatted)
-                    discord_file = discord.File(fp=stats_file, filename=f"{nickname}_stats.txt")
-                    await ctx.respond(
-                        f"📊 Статистика {nickname} слишком большая, файл прикреплен",
-                        file=discord_file
-                    )
-                else:
-                    embed = discord.Embed(
-                        title=f"📊 Статистика {nickname}",
-                        color=0x00ff00,
-                        description=formatted
-                    )
-                    await ctx.respond(embed=embed)
-            else:
-                await ctx.respond("❌ Не удалось получить данные", ephemeral=True)
-
-        @bot.slash_command(name="servers", description="Показать онлайн серверов Arizona RP")
-        async def servers_cmd(ctx: discord.ApplicationContext):
-            await ctx.defer()
-            try:
-                servers_info = await arizona_api.get_servers_status_from_api()
-                embed = discord.Embed(
-                    title="🌐 Arizona RP Servers",
-                    description=servers_info,
-                    color=0x00ff00
-                )
-                embed.set_footer(text="Обновлено автоматически")
-                await ctx.respond(embed=embed)
-            except Exception as e:
-                logger.error(f"Error fetching servers: {e}")
-                fallback = arizona_api.get_servers_info()
-                embed = discord.Embed(
-                    title="⚠️ Ошибка загрузки",
-                    description=f"Не удалось получить актуальный статус.\n\n{fallback}",
-                    color=0xff6600
-                )
-                await ctx.respond(embed=embed)
-
-    async def start(self):
-        if not self.bot:
-            logger.warning("Discord bot not configured, skipping start")
-            return
-        try:
-            logger.info("Starting Discord bot...")
-            await self.bot.start(DISCORD_TOKEN)
-        except Exception as e:
-            logger.error(f"Discord bot error: {e}")
-            raise
-
-    async def close(self):
-        if self.bot:
-            try:
-                await self.bot.close()
-                logger.info("Discord bot closed")
-            except Exception as e:
-                logger.error(f"Error closing Discord bot: {e}")
-
-discord_bot = DiscordBot()
+async def close():
+    await bot.close()
