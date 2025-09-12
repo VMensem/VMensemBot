@@ -1,6 +1,6 @@
 aiogram==3.13.1
 aiohttp==3.10.10
-discord.py==2.4.0
+py-cord==2.5.0
 flask==3.0.3
 twilio==9.3.6
 requests==2.32.3
