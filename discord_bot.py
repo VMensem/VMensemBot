@@ -15,7 +15,7 @@ class DiscordBot:
         self.is_ready = False
 
     def setup(self):
-        token = os.getenv(DISCORD_TOKEN_ENV_NAME)
+        token = os.environ.get("DISCORD_TOKEN")
         if not token:
             logger.warning("Discord token not provided, bot will not start")
             return False
